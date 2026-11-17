@@ -7,6 +7,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { routes } from './app/router';
+import { MotionProvider } from './app/motion';
 import { ThemeProvider } from './app/theme';
 
 const router = createBrowserRouter(routes);
@@ -17,7 +18,9 @@ if (!container) throw new Error('Elemento #root não encontrado');
 createRoot(container).render(
   <StrictMode>
     <ThemeProvider>
-      <RouterProvider router={router} />
+      <MotionProvider>
+        <RouterProvider router={router} />
+      </MotionProvider>
     </ThemeProvider>
   </StrictMode>,
 );

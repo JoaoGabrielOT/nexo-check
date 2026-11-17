@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import { CONSENT_VERSION } from '@nexo/shared';
-import { DecorativePills, Toaster, cn } from '@nexo/ui';
+import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
 import { PwaUpdateToast } from './PwaUpdateToast';
 
@@ -22,8 +22,8 @@ const EXEMPT_PREFIXES = ['/checkin', '/admin'];
 const focusRing =
   'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl';
 
-// O fundo fica só no html (index.css). As DecorativePills são fixed z-0 e o
-// conteúdo (header, nav e main) fica acima delas com z-10/z-30, sem z-index negativo.
+// O fundo fica só no html (index.css). O Wallpaper é fixed z-0 e o
+// conteúdo (header, nav e main) fica acima dele com z-10/z-30, sem z-index negativo.
 export function Layout() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -48,7 +48,7 @@ export function Layout() {
       >
         {t('a11y.skipToContent')}
       </a>
-      <DecorativePills />
+      <Wallpaper />
       <header className="sticky top-0 z-30 flex items-center justify-between bg-bg px-[6vw] py-4 lg:pl-60">
         <span className="text-lg font-extrabold tracking-tight">{t('brand')}</span>
         <NavLink

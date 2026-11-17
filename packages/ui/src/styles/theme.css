@@ -5,46 +5,123 @@
  *   @source "../../packages/ui/src";   (ajustar o caminho relativo ao CSS do app)
  * O @source é necessário para o Tailwind enxergar as classes usadas nos componentes.
  * As fontes (@fontsource/montserrat) são carregadas pelo client, não por este pacote.
+ *
+ * Os contrastes dos pares de tokens estão em packages/ui/test/redesign.test.tsx.
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg: #f7f5f2;
   --color-navy: #1d1a5c;
   --color-lav: #a8a4c2;
   --color-lav2: #c9c6dc;
   --color-or: #f5a64a;
   --color-rd: #c0575a;
   --color-bl: #3a8bc8;
+  --color-peach: #f3c79a;
 
   /* Semânticos: remapeados pela classe .dark */
+  --color-bg: #f7f5f2;
   --color-surface: #ffffff;
-  --color-surface-2: #a8a4c2;
+  --color-surface-2: #efe9f6;
   --color-card: #c9c6dc;
   --color-text: #1d1a5c;
   --color-muted: #4a4780;
   --color-border: #1d1a5c;
   --color-focus: #3a8bc8;
 
+  /* Bloco herói (Movimento). No escuro o fundo é gradiente: usar o utilitário bg-hero. */
+  --color-hero-bg: #1d1a5c;
+  --color-hero-ink: #f7f5f2;
+  --color-hero-action: #f5a64a;
+  --color-hero-action-ink: #1d1a5c;
+
+  /* Blocos de hábito: tinta suave no claro, grafite translúcido no escuro. */
+  --color-tile-water: #c9c6dc;
+  --color-tile-sleep: #fbe3c4;
+  --color-tile-breaks: #d6e7f4;
+  --color-tile-breathing: #efe9f6;
+  --color-tile-plain: #ffffff;
+  --color-tile-ink: #1d1a5c;
+  --color-tile-edge: transparent;
+  --color-tile-label-water: #1d1a5c;
+  --color-tile-label-sleep: #1d1a5c;
+  --color-tile-label-breaks: #1d1a5c;
+  --color-tile-label-breathing: #1d1a5c;
+  --color-tile-label-plain: #4a4780;
+
   --font-sans: 'Montserrat', system-ui, sans-serif;
+  --radius-hero: 32px;
   --radius-panel: 36px;
   --radius-card: 24px;
+  --radius-tile: 24px;
+  --radius-control: 16px;
 }
 
 :root {
   color-scheme: light;
+  /* Grão: ruído cinza com alfa fixo baixo; escurece o claro e clareia o escuro na mesma medida. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --hero-fill: var(--grain), linear-gradient(var(--color-hero-bg), var(--color-hero-bg));
+  --wallpaper: var(--grain);
 }
 
 .dark {
   color-scheme: dark;
-  --color-bg: #1d1a5c;
-  --color-surface: #2a2670;
-  --color-surface-2: #353080;
-  --color-card: #2a2670;
-  --color-text: #f7f5f2;
-  --color-muted: #c9c6dc;
-  --color-border: #a8a4c2;
+  --color-bg: #16141a;
+  --color-surface: #211e26;
+  --color-surface-2: #2a2630;
+  --color-card: #211e26;
+  --color-text: #f3f0f5;
+  --color-muted: #bdb6c6;
+  --color-border: #8a8394;
+
+  --color-hero-bg: #c9c6dc;
+  --color-hero-ink: #1d1a5c;
+  --color-hero-action: #1d1a5c;
+  --color-hero-action-ink: #f7f5f2;
+
+  --color-tile-water: rgb(255 255 255 / 0.06);
+  --color-tile-sleep: rgb(255 255 255 / 0.06);
+  --color-tile-breaks: rgb(255 255 255 / 0.06);
+  --color-tile-breathing: rgb(255 255 255 / 0.06);
+  --color-tile-plain: rgb(255 255 255 / 0.06);
+  --color-tile-ink: #f3f0f5;
+  --color-tile-edge: rgb(255 255 255 / 0.08);
+  /* Rótulos na cor da marca clareada; o azul aparece só aqui, em texto pequeno. */
+  --color-tile-label-water: #9cc6e6;
+  --color-tile-label-sleep: #f7b866;
+  --color-tile-label-breaks: #eba0a3;
+  --color-tile-label-breathing: #cfcbe3;
+  --color-tile-label-plain: #bdb6c6;
+
+  --hero-fill: var(--grain), linear-gradient(135deg, var(--color-lav2) 0%, var(--color-peach) 100%);
+  /* Wallpaper mesclado: manchas estáticas em cantos diferentes, sem filtro ao vivo. */
+  --wallpaper:
+    var(--grain), radial-gradient(70% 55% at 100% 0%, rgb(245 166 74 / 0.22), transparent 70%),
+    radial-gradient(65% 55% at 0% 100%, rgb(192 87 90 / 0.18), transparent 70%),
+    radial-gradient(60% 50% at 100% 100%, rgb(168 164 194 / 0.2), transparent 70%);
+}
+
+@utility bg-hero {
+  background-image: var(--hero-fill);
+}
+
+@utility bg-wallpaper {
+  background-image: var(--wallpaper);
+}
+
+@utility grain {
+  background-image: var(--grain);
+}
+
+/* Rótulo pequeno em caixa-alta (data, nome do bloco). */
+@utility eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 body {

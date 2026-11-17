@@ -1,10 +1,10 @@
 import { clsx, type ClassValue } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
 
-// Raios do tema (--radius-card/--radius-panel) entram no grupo `rounded`,
+// Raios do tema (--radius-*) entram no grupo `rounded`,
 // para a className do consumidor poder sobrescrevê-los.
 const twMerge = extendTailwindMerge({
-  extend: { theme: { radius: ['card', 'panel'] } },
+  extend: { theme: { radius: ['card', 'panel', 'hero', 'tile', 'control'] } },
 });
 
 export function cn(...inputs: ClassValue[]): string {
