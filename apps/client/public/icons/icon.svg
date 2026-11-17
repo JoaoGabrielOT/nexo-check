@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NEXO Check">
+  <rect width="512" height="512" rx="112" fill="#1d1a5c"/>
+  <rect x="96" y="150" width="70" height="140" rx="35" fill="#c9c6dc"/>
+  <rect x="346" y="222" width="70" height="140" rx="35" fill="#f5a64a"/>
+  <text x="256" y="338" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="230" fill="#f7f5f2">N</text>
+</svg>

@@ -1,0 +1,62 @@
+{
+  "brand": "NEXO Check",
+  "a11y": {
+    "skipToContent": "Pular para o conteúdo",
+    "mainNav": "Navegação principal"
+  },
+  "nav": {
+    "today": "Hoje",
+    "log": "Registro",
+    "progress": "Progresso",
+    "learn": "Aprender",
+    "project": "Projeto",
+    "settings": "Configurações"
+  },
+  "pages": {
+    "today": "Hoje",
+    "log": "Registro do dia",
+    "progress": "Progresso",
+    "learn": "Aprender",
+    "article": "Conteúdo",
+    "project": "Projeto NEXO",
+    "questionnaire": "Questionário",
+    "checkin": "Check-in",
+    "settings": "Configurações",
+    "onboarding": "Boas-vindas",
+    "admin": "Administração"
+  },
+  "pwa": {
+    "updateAvailable": "Nova versão disponível — recarregar",
+    "reload": "Recarregar"
+  },
+  "achievements": {
+    "first_full_day": {
+      "title": "Primeiro dia completo",
+      "description": "Você concluiu todos os hábitos do dia pela primeira vez."
+    },
+    "streak_3": {
+      "title": "3 dias seguidos",
+      "description": "Três dias seguidos cumprindo a sua meta diária."
+    },
+    "streak_7": {
+      "title": "7 dias seguidos",
+      "description": "Uma semana inteira de constância na sua rotina."
+    },
+    "first_perfect_week": {
+      "title": "Primeira semana completa",
+      "description": "Sete dias consecutivos com todos os hábitos concluídos."
+    },
+    "breathing_10": {
+      "title": "10 respirações guiadas",
+      "description": "Você fez 10 sessões de respiração guiada."
+    },
+    "first_checkin": {
+      "title": "Primeiro check-in",
+      "description": "Você confirmou presença em uma oficina do projeto."
+    },
+    "initial_questionnaire": {
+      "title": "Questionário inicial",
+      "description": "Você respondeu ao questionário inicial do projeto."
+    }
+  }
+}
