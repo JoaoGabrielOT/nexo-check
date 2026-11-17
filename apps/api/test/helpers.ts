@@ -12,6 +12,7 @@ export const testEnv: Env = {
   CORS_ORIGINS: ['https://nexo.example'],
   PUBLIC_WEB_URL: 'https://nexo.example',
   PORT: 3333,
+  TRUST_PROXY_HOPS: 1,
   NODE_ENV: 'test',
 };
 

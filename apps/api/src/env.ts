@@ -19,6 +19,11 @@ const envSchema = z.object({
     ),
   PUBLIC_WEB_URL: z.url(),
   PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(65535).default(3333)),
+  // Saltos de proxy confiáveis para X-Forwarded-For (Render = 1).
+  TRUST_PROXY_HOPS: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(0).max(10).default(1),
+  ),
   NODE_ENV: z.preprocess(
     emptyToUndefined,
     z.enum(['development', 'test', 'production']).default('development'),

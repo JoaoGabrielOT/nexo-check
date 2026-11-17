@@ -76,6 +76,19 @@ describe('rate limit e CORS normalizado', () => {
     await app.close();
   });
 
+  it('não deixa o cliente forjar o IP com X-Forwarded-For à esquerda', async () => {
+    const { app } = await makeTestApp({}, 3);
+    const get = (n: number) =>
+      app.inject({
+        method: 'GET',
+        url: '/health',
+        headers: { 'x-forwarded-for': `198.51.100.${n}, 203.0.113.1` },
+      });
+    for (let i = 1; i <= 3; i++) expect((await get(i)).statusCode).toBe(200);
+    expect((await get(4)).statusCode).toBe(429);
+    await app.close();
+  });
+
   it('ignora barra final e espaços nas origens configuradas', async () => {
     const { parseEnv } = await import('../src/env');
     const env = parseEnv({

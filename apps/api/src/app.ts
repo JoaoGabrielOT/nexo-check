@@ -26,9 +26,9 @@ function appVersion(): string {
 export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
   const { prisma, env } = opts;
   const app = Fastify({
-    // Atrás do proxy do Render o IP real vem em X-Forwarded-For; sem isso o rate limit
-    // agruparia todos os usuários no IP do proxy.
-    trustProxy: true,
+    // Confia só nos N últimos saltos de X-Forwarded-For (o proxy do Render acrescenta o IP real
+    // à direita). `true` usaria a entrada mais à esquerda, forjável pelo cliente.
+    trustProxy: (_addr: string, hop: number) => hop < env.TRUST_PROXY_HOPS,
     logger: env.NODE_ENV === 'test' ? false : { level: 'info' },
   });
 

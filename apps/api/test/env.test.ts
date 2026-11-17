@@ -14,12 +14,18 @@ describe('parseEnv', () => {
     expect(env.PORT).toBe(3333);
     expect(env.NODE_ENV).toBe('development');
     expect(env.CORS_ORIGINS).toEqual([]);
+    expect(env.TRUST_PROXY_HOPS).toBe(1);
   });
 
   it('trata variáveis opcionais vazias como ausentes', () => {
     const env = parseEnv({ ...base, DIRECT_URL: '', PORT: '', NODE_ENV: '' });
     expect(env.DIRECT_URL).toBeUndefined();
     expect(env.PORT).toBe(3333);
+  });
+
+  it('lê TRUST_PROXY_HOPS numérico e trata vazio como padrão', () => {
+    expect(parseEnv({ ...base, TRUST_PROXY_HOPS: '2' }).TRUST_PROXY_HOPS).toBe(2);
+    expect(parseEnv({ ...base, TRUST_PROXY_HOPS: '' }).TRUST_PROXY_HOPS).toBe(1);
   });
 
   it('normaliza CORS_ORIGINS (espaços, barra final, entradas vazias)', () => {

@@ -1,8 +1,10 @@
 import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'prisma/config';
 
 // Carrega o .env local para os scripts db:* (no Render as variáveis já vêm do ambiente).
-if (existsSync('.env')) process.loadEnvFile('.env');
+const envFile = fileURLToPath(new URL('.env', import.meta.url));
+if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 // Migrações usam a conexão direta (sem pooler) quando existir; `||` trata DIRECT_URL vazia.
 export default defineConfig({
