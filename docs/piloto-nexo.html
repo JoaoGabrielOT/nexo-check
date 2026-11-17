@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXO em Movimento</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f5f2;--navy:#1d1a5c;--lav:#a8a4c2;--lav2:#c9c6dc;--or:#f5a64a;--rd:#c0575a;--bl:#3a8bc8;--w:#fff;--f:'Montserrat',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--navy);font-family:var(--f);line-height:1.5;min-height:100vh;position:relative;overflow-x:hidden}
+.blob{position:fixed;right:-30px;width:70px;height:110px;border-radius:35px;z-index:0}
+.b1{top:6vh;background:var(--or)}.b2{top:28vh;background:var(--rd)}.b3{top:50vh;background:var(--bl)}
+.l1{position:fixed;left:-30px;bottom:6vh;width:70px;height:110px;border-radius:35px;background:var(--or);z-index:0}
+.l2{position:fixed;left:-30px;bottom:calc(6vh + 130px);width:70px;height:110px;border-radius:35px;background:var(--rd);z-index:0}
+header{position:sticky;top:0;background:var(--bg);z-index:5;padding:1.2rem 6vw .6rem}
+.brand{font-weight:800;font-size:1.1rem;letter-spacing:-.03em}
+nav{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem}
+nav button{font:600 .85rem var(--f);color:var(--navy);background:transparent;border:2px solid var(--navy);border-radius:999px;padding:.35rem .9rem;cursor:pointer}
+nav button[aria-selected=true]{background:var(--navy);color:var(--w)}
+button:focus-visible{outline:3px solid var(--bl);outline-offset:2px}
+main{position:relative;z-index:1;padding:1.5rem 6vw 5rem;max-width:1100px}
+section{display:none}section.on{display:block}
+h1{font-weight:800;font-size:clamp(2.4rem,7vw,5rem);line-height:.95;letter-spacing:-.05em}
+h2{font-weight:800;font-size:clamp(1.8rem,4vw,2.8rem);letter-spacing:-.04em;line-height:1;margin-bottom:.8rem}
+h3{font-weight:800;font-size:1.1rem}
+p,li{font-size:1rem;max-width:68ch}
+.sub{font-weight:800;font-size:clamp(1.1rem,2.4vw,1.6rem);margin:1rem 0 .4rem}
+.it{font-style:italic}
+.panel{background:var(--lav);border-radius:36px;padding:1.6rem 1.8rem;margin-top:1.2rem}
+.panel p,.panel li{color:var(--navy)}
+.grid{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1rem}
+.card{background:var(--lav2);border:0;border-radius:24px;padding:1.1rem 1.2rem;text-align:left;font:inherit;color:var(--navy);cursor:pointer;width:100%}
+.card h3{display:flex;justify-content:space-between;gap:.5rem}
+.card .more{display:none;margin-top:.6rem;font-size:.92rem}
+.card[aria-expanded=true]{background:var(--w);box-shadow:0 0 0 3px var(--navy)}
+.card[aria-expanded=true] .more{display:block}
+.card .pl{font-weight:800}
+.alert{border-left:8px solid var(--rd);background:var(--w);border-radius:0 20px 20px 0;padding:1rem 1.2rem;margin-top:1.2rem}
+.tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 0}
+.tabs button{font:800 .9rem var(--f);border:0;border-radius:999px;padding:.55rem 1.1rem;background:var(--lav2);color:var(--navy);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--navy);color:var(--w)}
+dl{display:grid;gap:.7rem}
+dt{font-weight:800}dd{margin:0 0 .3rem;max-width:75ch}
+.w{display:grid;grid-template-columns:130px 1fr;gap:.8rem;padding:.55rem 0;border-top:1px solid rgba(29,26,92,.25)}
+.w:first-child{border-top:0}
+.w b{font-weight:800}
+@media(max-width:600px){.w{grid-template-columns:1fr;gap:.1rem}}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:.6rem .5rem;border-top:1px solid rgba(29,26,92,.25);vertical-align:top}
+th{font-weight:800}
+.scroll{overflow-x:auto}
+.steps{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem}
+.steps button{font:800 .85rem var(--f);border:0;border-radius:999px;padding:.5rem 1rem;color:var(--w);cursor:pointer}
+.steps button[aria-selected=true]{box-shadow:0 0 0 3px var(--navy)}
+.next{margin-top:1.5rem;font:800 .95rem var(--f);background:var(--navy);color:var(--w);border:0;border-radius:999px;padding:.7rem 1.4rem;cursor:pointer}
+.ref li{margin:.6rem 0}
+@media(prefers-reduced-motion:no-preference){section.on{animation:in .25s ease}@keyframes in{from{opacity:0}to{opacity:1}}}
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="l1"></div><div class="l2"></div>
+<header>
+<div class="brand">NEXO Consultoria</div>
+<nav role="tablist" id="nav"></nav>
+</header>
+<main>
+
+<section id="inicio">
+<h1>NEXO em<br>Movimento</h1>
+<p class="sub">Neurociência do Exercício Físico aplicada à saúde mental universitária</p>
+<div class="panel">
+<h3>Pergunta norteadora</h3>
+<p>Como a prática regular e acessível de exercícios físicos pode contribuir para mitigar fatores associados à sobrecarga cerebral, ao estresse e à ansiedade entre estudantes universitários?</p>
+</div>
+<div class="panel">
+<h3>Objetivo geral</h3>
+<p>Promover a saúde mental e o bem-estar de universitários por meio de uma intervenção educativa e prática fundamentada na Neurociência do Exercício Físico, incentivando atividades físicas e estratégias de autorregulação que contribuam para reduzir o estresse, melhorar o humor e a qualidade da experiência acadêmica.</p>
+</div>
+<button class="next" data-go="estrategia">Ver a estratégia</button>
+</section>
+
+<section id="estrategia">
+<h2>Nossa estratégia</h2>
+<p class="it">Desafio: estresse + ansiedade + queda do rendimento acadêmico</p>
+<div class="steps" id="steps" role="tablist"></div>
+<div class="panel" id="stepbox" aria-live="polite"></div>
+</section>
+
+<section id="ciencia">
+<h2>Fundamentação científica</h2>
+<p>A revisão com metanálise de Huang et al. (2024) reuniu 59 estudos sobre atividade física em universitários e identificou efeitos favoráveis sobre ansiedade, depressão e estresse, com diferenças importantes entre os estudos e baixa certeza geral das evidências.</p>
+<p class="sub">Mecanismos neurocientíficos (clique para abrir)</p>
+<div class="grid" id="mec"></div>
+<div class="alert"><h3>Ressalva científica</h3>
+<p>Não afirmamos que uma oficina de HIIT produzirá neurogênese no hipocampo. Há evidências sobre exercício, BDNF e plasticidade neural, mas o aumento de BDNF no sangue não comprova neurogênese no cérebro humano. Por isso, usamos exercícios adaptáveis, de intensidade leve a moderada. O HIIT é apresentado só como modalidade estudada, sem ser obrigatório.</p></div>
+</section>
+
+<section id="plano">
+<h2>Planejamento 5W2H</h2>
+<p>Quatro ações da NEXO Consultoria, do diagnóstico à avaliação.</p>
+<div class="tabs" id="ptabs" role="tablist"></div>
+<div class="panel" id="pbox" aria-live="polite"></div>
+<div class="alert"><p>O custo direto estimado é R$ 0,00, condicionado ao apoio institucional. Se for preciso contratar profissional, alugar espaço ou comprar materiais, esses custos devem ser previstos.</p></div>
+</section>
+
+<section id="oficinas">
+<h2>As oficinas</h2>
+<p>Duas oficinas complementares de 45 a 60 minutos, com participação voluntária e sem exigência de esforço intenso.</p>
+<div class="grid" id="ofi"></div>
+<div class="alert"><p>As atividades físicas são planejadas e acompanhadas por profissional habilitado em Educação Física, com adaptações para diferentes capacidades e condições de saúde.</p></div>
+<div class="panel"><h3>Ao final</h3><p>Os participantes recebem um guia digital com pausas ativas, caminhadas e formas de incluir atividade física na rotina aos poucos, respeitando as possibilidades de cada um.</p></div>
+</section>
+
+<section id="indicadores">
+<h2>Indicadores de sucesso</h2>
+<div class="panel scroll">
+<table>
+<tr><th>Indicador</th><th>Meta sugerida</th><th>Instrumento</th></tr>
+<tr><td>Participação</td><td>20–30 estudantes</td><td>Registro de presença</td></tr>
+<tr><td>Compreensão dos conteúdos</td><td>80% de respostas corretas</td><td>Questionário educativo</td></tr>
+<tr><td>Aceitação das oficinas</td><td>80% de avaliações positivas</td><td>Formulário de satisfação</td></tr>
+<tr><td>Adesão ao movimento</td><td>60% relatando experimentação de atividades</td><td>Questionário final</td></tr>
+<tr><td>Estresse percebido e bem-estar</td><td>Comparar antes e depois, sem meta de redução predefinida</td><td>Escalas breves e autorrelato</td></tr>
+<tr><td>Frequência de atividade física</td><td>Verificar possíveis mudanças</td><td>Questionário inicial e final</td></tr>
+</table></div>
+<p style="margin-top:1rem">Rendimento acadêmico e frequência às aulas ficam como indicadores secundários, para um acompanhamento mais longo. Não prometemos melhora de notas após duas oficinas.</p>
+<p class="sub">Impacto esperado</p>
+<p>Ampliar a compreensão dos estudantes sobre os efeitos do exercício no cérebro, incentivar hábitos de movimento e contribuir para mitigar fatores da sobrecarga cerebral, com uma experiência acadêmica mais saudável e equilibrada.</p>
+</section>
+
+<section id="refs">
+<h2>Referências</h2>
+<ul class="ref">
+<li>HUANG, K. et al. (2024). Effectiveness of physical activity interventions on undergraduate students' mental health: systematic review and meta-analysis. <i>Health Promotion International</i>, 39(3), daae054.</li>
+<li>GARCÍA-PÉREZ, L. et al. (2025). Effectiveness of physical activity, mindfulness and mind-body therapies in improving mental health of university students: a systematic review of RCTs. <i>Journal of American College Health</i>.</li>
+<li>The Effect of High-Intensity Interval Training (HIIT) on Brain-Derived Neurotrophic Factor Levels: A Systematic Review (2025).</li>
+<li>Organização Mundial da Saúde (OMS). Recomendações internacionais de atividade física para adultos.</li>
+<li>KANDEL, E. R. et al.; LENT, R. Bases de neurociência, neuroplasticidade e comportamento.</li>
+</ul>
+<p style="margin-top:1rem">Estudos sobre sono, mindfulness e música (Friedrich e Schlarb; Pan et al.; Li et al.) apoiam estratégias complementares.</p>
+</section>
+
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const secs=[['inicio','Início'],['estrategia','Estratégia'],['ciencia','Ciência'],['plano','5W2H'],['oficinas','Oficinas'],['indicadores','Indicadores'],['refs','Referências']];
+const nav=$('#nav');
+secs.forEach(([id,t])=>{const b=document.createElement('button');b.textContent=t;b.dataset.id=id;b.setAttribute('role','tab');b.onclick=()=>show(id);nav.append(b)});
+function show(id){secs.forEach(([s])=>$('#'+s).classList.toggle('on',s===id));
+nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.id===id));
+history.replaceState(null,'','#'+id);scrollTo(0,0)}
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
+
+const steps=[
+['1. Identificar',"var(--or)",'Anamnese + triagem multidisciplinar','Compreender perfil, rotina, hábitos, histórico e fatores de risco, e identificar cedo estudantes em sofrimento. Objetivo: reconhecer os fatores individuais e ambientais associados ao estresse antes de definir a intervenção.'],
+['2. Compreender',"var(--rd)",'Neurociência + comportamento','Analisar a relação entre emoção, resposta ao estresse, autorregulação, comportamento e capacidade de adaptação. Objetivo: entender não só o sintoma, mas o que o desencadeia e o mantém.'],
+['3. Intervir',"var(--bl)",'Descompressão','Estratégias acessíveis, integradas à rotina: Movimento (atividade física, práticas corporais, yoga); Autorregulação (mindfulness, respiração, relaxamento, espaços de silêncio); Expressão e vínculo social (música, teatro, coral); Recuperação (qualidade do sono, higiene do sono, descanso). Neste projeto, o protagonista é o movimento.'],
+['4. Prevenir',"var(--navy)",'Acompanhamento contínuo','Acompanhar o ciclo estresse → ansiedade → desempenho, com avaliações periódicas, acompanhamento acadêmico e identificação precoce de alterações de comportamento.'],
+['5. Mensurar',"var(--or)",'Indicadores-chave','Rendimento acadêmico, qualidade do sono, frequência/absenteísmo e sintomas de ansiedade e estresse.']];
+const sb=$('#steps');
+steps.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s[0];b.style.background=s[1];b.setAttribute('role','tab');b.onclick=()=>{sb.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected','false'));b.setAttribute('aria-selected','true');$('#stepbox').innerHTML='<h3>'+s[2]+'</h3><p style="margin-top:.4rem">'+s[3]+'</p>'};sb.append(b);if(!i)b.click()});
+
+const mec=[['BDNF e neuroplasticidade','A atividade física pode modular fatores neurotróficos envolvidos na plasticidade neural.'],['Hipocampo','O exercício está associado a processos importantes para memória, aprendizagem e adaptação ao estresse.'],['Eixo HPA e cortisol','A prática regular pode contribuir para a regulação fisiológica das respostas ao estresse.'],['Circuitos de recompensa','O movimento pode influenciar processos ligados à motivação e ao humor.'],['Córtex pré-frontal','A atividade física pode favorecer aspectos das funções executivas e da autorregulação.']];
+function cards(sel,data){data.forEach(([t,d])=>{const c=document.createElement('button');c.className='card';c.setAttribute('aria-expanded','false');c.innerHTML='<h3>'+t+'<span class="pl">+</span></h3><div class="more">'+d+'</div>';c.onclick=()=>{const o=c.getAttribute('aria-expanded')==='true';c.setAttribute('aria-expanded',!o);c.querySelector('.pl').textContent=o?'+':'−'};$(sel).append(c)})}
+cards('#mec',mec);
+cards('#ofi',[['Oficina 1 — Exercício físico, cérebro e regulação do estresse','45–60 min. Apresentação educativa sobre neuroplasticidade, circuitos do humor e BDNF; caminhada orientada ou movimentos aeróbicos adaptados, de intensidade leve a moderada; recuperação e breve reflexão sobre disposição, humor e estresse percebido. Base: o exercício pode modular a plasticidade neural e as respostas ao estresse (eixo HPA), e estudos o associam à redução de ansiedade, depressão e estresse em universitários.'],['Oficina 2 — Movimento consciente, recuperação e bem-estar','45–60 min. Mobilidade, alongamentos suaves, movimentos conscientes e recuperação respiratória, com orientações para integrar pausas ativas ao dia a dia. Base: a interação entre movimento, percepção corporal e regulação das respostas autonômicas e emocionais pode favorecer relaxamento e bem-estar. Também aborda o sono na recuperação e no funcionamento cognitivo.']]);
+
+const P={
+'1. Desenvolvimento':[['O quê','Identificar hábitos de atividade física e fatores associados ao estresse e à sobrecarga cerebral, e criar materiais educativos baseados na Neurociência do Exercício Físico.'],['Por quê','Entender a relação entre sedentarismo, rotina acadêmica, estresse, ansiedade e bem-estar, e abrir espaço para o movimento como estratégia preventiva e acessível.'],['Quem','Integrantes da NEXO Consultoria, sob orientação e revisão do docente responsável.'],['Quando','Etapa inicial, antes das atividades práticas com os estudantes.'],['Onde','Instituição de ensino, com formulários digitais e ambiente virtual de colaboração.'],['Como','Questionário voluntário (atividade física, tempo sedentário, sono, estresse percebido, dificuldades de rotina); pesquisa sobre exercício, BDNF, neuroplasticidade e regulação do estresse; infográficos, apresentações, guia digital e planejamento de atividades adaptáveis.'],['Quanto','R$ 0,00 de custo direto estimado, com ferramentas gratuitas e infraestrutura institucional.']],
+'2. Projeto piloto':[['O quê','Testar os materiais e uma atividade experimental de movimento com um grupo reduzido.'],['Por quê','Verificar compreensão, segurança, acessibilidade, aceitação e viabilidade antes da implementação ampliada.'],['Quem','Equipe NEXO, docente, estudantes voluntários e profissional habilitado em Educação Física.'],['Quando','Etapa intermediária, após o desenvolvimento dos materiais.'],['Onde','Sala ampla, quadra ou espaço acessível cedido pela instituição.'],['Como','Oficina com 5 a 10 estudantes: explicação dos efeitos do exercício no cérebro, caminhada ou movimentos aeróbicos leves, mobilidade e respiração; questionário de feedback.'],['Quanto','R$ 0,00 de custo direto estimado, com espaço, equipamentos e acompanhamento profissional cedidos.']],
+'3. Implementação':[['O quê','Oficinas educativas e práticas corporais para promover saúde mental, reduzir a sobrecarga percebida e incluir o movimento na rotina.'],['Por quê','Incentivar hábitos que favoreçam a regulação do estresse, o humor, a disposição e o bem-estar.'],['Quem','Integrantes da NEXO, sob supervisão docente, com orientação prática de profissional de Educação Física.'],['Quando','Etapa central, após os ajustes do piloto.'],['Onde','Quadras, áreas de convivência ou salas apropriadas.'],['Como','Duas oficinas: (1) exercício, cérebro, estresse e humor, com caminhada orientada; (2) movimento consciente, mobilidade e recuperação. Guia digital de pausas ativas e inclusão gradual de atividades.'],['Quanto','R$ 0,00 de custo direto estimado, com materiais digitais gratuitos e recursos institucionais.']],
+'4. Avaliação':[['O quê','Avaliar participação, compreensão, aceitação das práticas e mudanças autorrelatadas em atividade física, estresse e bem-estar.'],['Por quê','Identificar resultados preliminares e limitações, e embasar o aperfeiçoamento e a continuidade.'],['Quem','Equipe NEXO, sob orientação docente.'],['Quando','Etapa final, após as oficinas e o período de aplicação voluntária das estratégias.'],['Onde','Ambiente virtual para coleta de dados e instituição para apresentar os resultados.'],['Como','Reaplicação de perguntas do diagnóstico, registro de presença, avaliação de satisfação e levantamento da intenção ou adoção inicial de hábitos de movimento; tabulação descritiva e relatório final.'],['Quanto','R$ 0,00 de custo direto estimado, com ferramentas digitais gratuitas.']]};
+const pt=$('#ptabs');
+Object.keys(P).forEach((k,i)=>{const b=document.createElement('button');b.textContent=k;b.setAttribute('role','tab');b.onclick=()=>{pt.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected','false'));b.setAttribute('aria-selected','true');$('#pbox').innerHTML=P[k].map(r=>'<div class="w"><b>'+r[0]+'</b><span>'+r[1]+'</span></div>').join('')};pt.append(b);if(!i)b.click()});
+
+show(secs.some(s=>s[0]===location.hash.slice(1))?location.hash.slice(1):'inicio');
+</script>
+</body>
+</html>
