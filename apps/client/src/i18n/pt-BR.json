@@ -25,6 +25,11 @@
     "onboarding": "Boas-vindas",
     "admin": "Administração"
   },
+  "errors": {
+    "backup": {
+      "invalid": "Arquivo de backup inválido. Nenhum dado foi alterado."
+    }
+  },
   "pwa": {
     "updateAvailable": "Nova versão disponível — recarregar",
     "reload": "Recarregar"
