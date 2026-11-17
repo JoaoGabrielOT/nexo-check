@@ -152,5 +152,16 @@
     "achievementLocked": "Ainda não desbloqueada",
     "achievementToast": "Conquista desbloqueada: {{title}}",
     "achievementsNote": "Sem ranking: as conquistas são só para você acompanhar a sua constância."
+  },
+  "learn": {
+    "evidence": "Evidências",
+    "mechanisms": "Mecanismos",
+    "guide": "Guia digital",
+    "references": "Referências",
+    "notices": "Avisos",
+    "draft": "Rascunho",
+    "back": "Voltar para Aprender",
+    "notFound": "Conteúdo não encontrado",
+    "notFoundHint": "Este conteúdo não existe ou foi removido."
   }
 }
