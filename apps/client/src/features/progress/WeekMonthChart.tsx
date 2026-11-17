@@ -24,16 +24,19 @@ export function WeekMonthChart({ days, range }: { days: ProgressDay[]; range: Pr
 
   return (
     <>
+      <div
+        className="mb-1 flex justify-between gap-2 text-xs font-semibold opacity-80"
+        aria-hidden="true"
+      >
+        <span>{t('progress.axisMinutes')}</span>
+        <span className="text-right">{t('progress.axisStress')}</span>
+      </div>
       <div className="h-72 w-full" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ComposedChart data={days} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--color-border)" />
             <XAxis dataKey="date" tickFormatter={tick} interval="preserveStartEnd" />
-            <YAxis
-              allowDecimals={false}
-              width={36}
-              label={{ value: t('progress.axisMinutes'), angle: -90, position: 'insideLeft' }}
-            />
+            <YAxis allowDecimals={false} width={36} />
             <YAxis
               yAxisId="stress"
               orientation="right"
@@ -59,6 +62,21 @@ export function WeekMonthChart({ days, range }: { days: ProgressDay[]; range: Pr
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+      <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold" aria-hidden="true">
+        <li className="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <rect x="1" y="3" width="14" height="12" rx="2" fill="var(--color-bl)" />
+          </svg>
+          {t('progress.axisMinutes')}
+        </li>
+        <li className="flex items-center gap-2">
+          <svg width="24" height="16" viewBox="0 0 24 16">
+            <line x1="0" y1="8" x2="24" y2="8" stroke="var(--color-rd)" strokeWidth="3" />
+            <circle cx="12" cy="8" r="4.5" fill="var(--color-rd)" />
+          </svg>
+          {t('progress.axisStress')}
+        </li>
+      </ul>
       <table className="sr-only">
         <caption>{t('progress.tableCaption')}</caption>
         <thead>

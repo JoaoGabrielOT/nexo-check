@@ -144,7 +144,7 @@
     "colStress": "Estresse (1 a 5)",
     "noStress": "Sem registro",
     "axisMinutes": "Minutos de movimento",
-    "axisStress": "Estresse percebido",
+    "axisStress": "Estresse percebido (1–5)",
     "heatmapTitle": "Mapa de calor do mês",
     "heatmapLabel": "{{date}}: {{percent}}% do checklist",
     "achievementsTitle": "Conquistas",
