@@ -1,0 +1,12 @@
+export const STREAK_THRESHOLD = 0.5;
+export const PROGRESSIVE_START = 10;
+export const PROGRESSIVE_STEP = 5;
+export const PROGRESSIVE_DAYS_REQUIRED = 5; // de 7
+export const PROGRESSIVE_DEFAULT_CEILING = 30;
+export const CONSENT_VERSION = 1;
+export const SYNC_TIMEOUT_MS = 60_000;
+export const SYNC_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000];
+export const SYNC_INTERVAL_MS = 900_000;
+export const MAX_CLOCK_SKEW_MS = 300_000;
+export const SESSION_VALID_HOURS_AFTER = 24;
+export const ADMIN_JWT_TTL = '8h';

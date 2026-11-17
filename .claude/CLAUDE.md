@@ -1,7 +1,11 @@
 # Instruções do projeto
 
 ## Projeto
-TODO: descreva o projeto aqui (o que é, stack, estrutura de pastas, comandos de teste, build e lint, convenções).
+NEXO Check: checklist diário de hábitos do projeto NEXO em Movimento (PWA offline-first, com sincronização opcional).
+- Stack: monorepo pnpm + Turborepo, TypeScript estrito; `apps/client` (React + Vite), `apps/api` (Fastify + Prisma).
+- Pastas: `apps/client`, `apps/api`, `packages/shared` (`@nexo/shared`, regras e constantes, consumido como código-fonte TS), `packages/ui`; documentação em `docs/`.
+- Comandos (raiz): `pnpm dev | build | lint | typecheck | test | test:e2e` (via turbo); `pnpm format` roda o Prettier.
+- Convenções: Conventional Commits (commitlint + Husky), ESLint flat, Prettier.
 
 ## Skills superpowers (obrigatório)
 - Em toda sessão neste projeto, carregue `superpowers:using-superpowers` antes da primeira resposta ou ação, e siga a regra dela: invocar a skill aplicável antes de responder, explorar código ou perguntar.
