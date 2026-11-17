@@ -6,7 +6,7 @@ order: 2
 
 > Texto provisório — os campos entre colchetes devem ser preenchidos pelo grupo antes do piloto.
 
-Este app faz parte de um projeto acadêmico (NEXO em Movimento). Você pode usá-lo sem enviar nenhum dado. Se escolher participar da pesquisa, usamos suas informações de forma anônima e agregada, apenas para avaliar o projeto.
+Este app faz parte de um projeto acadêmico (NEXO em Movimento). Você pode usá-lo sem enviar nenhum dado. Se escolher participar da pesquisa, usamos suas informações de forma pseudonimizada (sem nome, e-mail ou telefone, apenas com um código de participante) e analisamos os resultados de forma agregada, apenas para avaliar o projeto.
 
 **Responsável pelos dados:** [RESPONSÁVEL PELOS DADOS]
 **Contato (dúvidas, acesso e exclusão dos dados):** [CONTATO]

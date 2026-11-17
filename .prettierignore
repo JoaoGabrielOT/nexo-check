@@ -8,3 +8,4 @@ docs/piloto-nexo.html
 .superpowers
 docs
 packages/shared/src/content.generated.ts
+packages/shared/content

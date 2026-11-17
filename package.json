@@ -21,7 +21,8 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md,yml,yaml,css,html}": "prettier --write"
+    "*.{json,md,yml,yaml,css,html}": "prettier --write",
+    "packages/shared/content/**/*.{md,json}": "sh -c \"pnpm --filter @nexo/shared content:build && git add packages/shared/src/content.generated.ts\""
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
