@@ -21,7 +21,9 @@ export function computeStreak(
   let best = 0;
   let run = 0;
   let prev: string | null = null;
-  for (const key of Object.keys(ratiosByDate).sort()) {
+  for (const key of Object.keys(ratiosByDate)
+    .filter((key) => key <= today)
+    .sort()) {
     if (!valid(key)) continue;
     run = prev !== null && prevKey(key) === prev ? run + 1 : 1;
     prev = key;

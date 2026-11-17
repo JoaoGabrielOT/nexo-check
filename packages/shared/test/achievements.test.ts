@@ -18,6 +18,12 @@ describe('evaluateAchievements', () => {
       expect.arrayContaining(['first_full_day', 'streak_3', 'streak_7', 'first_perfect_week']),
     );
   });
+  test('semana perfeita atravessando virada de m�s', () => {
+    const ratiosByDate = Object.fromEntries(lastNDateKeys('2026-03-03', 7).map((k) => [k, 1]));
+    expect(ratiosByDate).toHaveProperty('2026-02-25');
+    const got = evaluateAchievements(base({ ratiosByDate, today: '2026-03-03' }));
+    expect(got).toContain('first_perfect_week');
+  });
   test('uma semana com um dia 0.9 não é perfeita', () => {
     const keys = lastNDateKeys('2026-03-07', 7);
     const ratiosByDate = Object.fromEntries(keys.map((k, i) => [k, i === 3 ? 0.9 : 1]));

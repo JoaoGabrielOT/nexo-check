@@ -18,22 +18,20 @@ export interface AchievementState {
   initialQuestionnaireDone: boolean;
 }
 
-const ids: AchievementId[] = [
-  'first_full_day',
-  'streak_3',
-  'streak_7',
-  'first_perfect_week',
-  'breathing_10',
-  'first_checkin',
-  'initial_questionnaire',
-];
+const entry = (id: AchievementId) => ({
+  titleKey: `achievements.${id}.title`,
+  descriptionKey: `achievements.${id}.description`,
+});
 
-export const ACHIEVEMENTS = Object.fromEntries(
-  ids.map((id) => [
-    id,
-    { titleKey: `achievements.${id}.title`, descriptionKey: `achievements.${id}.description` },
-  ]),
-) as Record<AchievementId, { titleKey: string; descriptionKey: string }>;
+export const ACHIEVEMENTS = {
+  first_full_day: entry('first_full_day'),
+  streak_3: entry('streak_3'),
+  streak_7: entry('streak_7'),
+  first_perfect_week: entry('first_perfect_week'),
+  breathing_10: entry('breathing_10'),
+  first_checkin: entry('first_checkin'),
+  initial_questionnaire: entry('initial_questionnaire'),
+} satisfies Record<AchievementId, { titleKey: string; descriptionKey: string }>;
 
 /** 7 dias de calendário consecutivos com ratio 1, em qualquer ponto do histórico. */
 function hasPerfectWeek(ratiosByDate: Record<string, number>): boolean {

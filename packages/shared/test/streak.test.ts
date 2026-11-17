@@ -30,4 +30,19 @@ describe('computeStreak', () => {
     const r = { '2026-03-01': 1, '2026-03-02': 1, '2026-03-03': 1, '2026-03-05': 1 };
     expect(computeStreak(r, '2026-03-05')).toEqual({ current: 1, best: 3 });
   });
+
+  test('atravessa a virada de ano', () => {
+    const r = { '2025-12-30': 1, '2025-12-31': 1, '2026-01-01': 1, '2026-01-02': 1 };
+    expect(computeStreak(r, '2026-01-02')).toEqual({ current: 4, best: 4 });
+  });
+
+  test('atravessa 28/29 de fevereiro em ano bissexto', () => {
+    const r = { '2028-02-28': 1, '2028-02-29': 1, '2028-03-01': 1 };
+    expect(computeStreak(r, '2028-03-01')).toEqual({ current: 3, best: 3 });
+  });
+
+  test('datas futuras n�o entram no best', () => {
+    const r = { '2026-03-01': 1, '2026-03-05': 1, '2026-03-06': 1, '2026-03-07': 1 };
+    expect(computeStreak(r, '2026-03-02')).toEqual({ current: 1, best: 1 });
+  });
 });
