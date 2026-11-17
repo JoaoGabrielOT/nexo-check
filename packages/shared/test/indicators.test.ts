@@ -186,4 +186,23 @@ describe('computeIndicators', () => {
       smallSample: true,
     });
   });
+
+  it('percentual exibido usa piso e o status usa a razão exata', () => {
+    const edu = (c: number) => [{ correct: c, total: 300 }];
+    expect(get(base({ educational: edu(239) }), 'comprehension')).toMatchObject({
+      value: '79%',
+      status: 'below',
+    });
+    expect(get(base({ educational: edu(240) }), 'comprehension')).toMatchObject({
+      value: '80%',
+      status: 'met',
+    });
+    const finals: Answers[] = Array.from({ length: 10000 }, (_, k) => ({
+      exp: k < 5999 ? 'sim' : 'nao',
+    }));
+    expect(get(base({ finalResponses: finals }), 'adherence')).toMatchObject({
+      value: '59%',
+      status: 'below',
+    });
+  });
 });

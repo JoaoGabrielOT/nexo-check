@@ -38,7 +38,8 @@ const AFFIRMATIVE = 'sim';
 
 const round2 = (x: number): number => Math.round(x * 100) / 100;
 const roundOrNull = (x: number | null): number | null => (x === null ? null : round2(x));
-const pct = (x: number): string => `${Math.round(x * 100)}%`;
+// Piso (não arredonda): nunca mostrar um valor que parece ter atingido a meta sem ter atingido.
+const pct = (x: number): string => `${Math.floor(x * 100 + 1e-9)}%`;
 const dec1 = (x: number | null): string => (x === null ? '—' : x.toFixed(1).replace('.', ','));
 
 function mean(xs: number[]): number | null {
