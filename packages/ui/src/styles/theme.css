@@ -1,0 +1,54 @@
+/*
+ * Tema NEXO (Tailwind CSS 4). Uso no client:
+ *   @import 'tailwindcss';
+ *   @import '@nexo/ui/theme.css';
+ *   @source "../../packages/ui/src";   (ajustar o caminho relativo ao CSS do app)
+ * O @source é necessário para o Tailwind enxergar as classes usadas nos componentes.
+ * As fontes (@fontsource/montserrat) são carregadas pelo client, não por este pacote.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-bg: #f7f5f2;
+  --color-navy: #1d1a5c;
+  --color-lav: #a8a4c2;
+  --color-lav2: #c9c6dc;
+  --color-or: #f5a64a;
+  --color-rd: #c0575a;
+  --color-bl: #3a8bc8;
+
+  /* Semânticos: remapeados pela classe .dark */
+  --color-surface: #ffffff;
+  --color-surface-2: #a8a4c2;
+  --color-card: #c9c6dc;
+  --color-text: #1d1a5c;
+  --color-muted: #4a4780;
+  --color-border: #1d1a5c;
+  --color-focus: #3a8bc8;
+
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --radius-panel: 36px;
+  --radius-card: 24px;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-bg: #1d1a5c;
+  --color-surface: #2a2670;
+  --color-surface-2: #353080;
+  --color-card: #2a2670;
+  --color-text: #f7f5f2;
+  --color-muted: #c9c6dc;
+  --color-border: #a8a4c2;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
