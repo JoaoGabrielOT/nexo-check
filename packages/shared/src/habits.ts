@@ -102,7 +102,7 @@ export function makeEntry(
     habitId: habit.id,
     date,
     value,
-    blocks,
+    blocks: [...blocks],
     targetSnapshot: habit.target,
     targetMaxSnapshot: habit.targetMax,
   };

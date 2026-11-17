@@ -96,6 +96,13 @@ describe('makeEntry e dayProgress', () => {
     progressive: null,
   };
 
+  test('makeEntry guarda cópia de blocks', () => {
+    const blocks = [10, 5];
+    const e = makeEntry(base, '2026-01-05', 15, blocks, now);
+    blocks.push(99);
+    expect(e.blocks).toEqual([10, 5]);
+  });
+
   test('makeEntry copia snapshots e monta o id', () => {
     const e = makeEntry(base, '2026-01-05', 25, [25], now);
     expect(e).toMatchObject({
