@@ -97,6 +97,20 @@ describe('Hoje', () => {
     expect((await getEntriesForDate('2026-11-17')).length).toBe(0);
   });
 
+  it('grava no dia novo mesmo antes do timer da meia-noite disparar', async () => {
+    let clock = new Date(2026, 10, 17, 23, 59, 30);
+    setNowForTests(() => clock);
+    const user = userEvent.setup();
+    render(<TodayPage />);
+    const box = await screen.findByRole('checkbox', {
+      name: 'Marcar Respiração de recuperação como feita',
+    });
+    clock = new Date(2026, 10, 18, 0, 0, 5); // passou da meia-noite; o timer (real) ainda não rodou
+    await user.click(box);
+    await waitFor(async () => expect((await getEntriesForDate('2026-11-18')).length).toBe(1));
+    expect((await getEntriesForDate('2026-11-17')).length).toBe(0);
+  });
+
   it('modo progressivo: 5 de 7 dias cumpridos com alvo 10 sobe para 15, uma vez por dia', async () => {
     const habits = await getHabits();
     const movement = { ...habits[0]!, target: 10, progressive: { enabled: true, ceiling: 30 } };

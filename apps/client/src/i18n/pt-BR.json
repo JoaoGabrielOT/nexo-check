@@ -28,7 +28,8 @@
   "errors": {
     "backup": {
       "invalid": "Arquivo de backup inválido. Nenhum dado foi alterado."
-    }
+    },
+    "generic": "Não foi possível concluir agora. Tente novamente."
   },
   "pwa": {
     "updateAvailable": "Nova versão disponível — recarregar",
@@ -105,5 +106,51 @@
     "copied": "Copiado",
     "keepKey": "Guarde sua chave: ela é necessária para recuperar seus dados em outro aparelho.",
     "start": "Começar"
+  },
+  "log": {
+    "question": "Como foi seu dia?",
+    "intro": "Registro rápido, só para você acompanhar como se sente. Não há resposta certa ou errada.",
+    "day": "Dia",
+    "todaySuffix": "{{date}} (hoje)",
+    "stress": "Estresse percebido",
+    "stressLow": "Quase nenhum",
+    "stressHigh": "Muito alto",
+    "mood": "Humor",
+    "moodLow": "Muito baixo",
+    "moodHigh": "Muito bom",
+    "energy": "Disposição",
+    "energyLow": "Sem energia",
+    "energyHigh": "Com muita energia",
+    "sleep": "Qualidade do sono",
+    "sleepLow": "Muito ruim",
+    "sleepHigh": "Muito boa",
+    "note": "Observação (fica só no seu aparelho)",
+    "save": "Salvar registro",
+    "saved": "Registro salvo"
+  },
+  "progress": {
+    "streakCurrent": "Sequência atual",
+    "streakBest": "Recorde",
+    "days_one": "{{count}} dia",
+    "days_other": "{{count}} dias",
+    "streakHint": "Conta como dia válido quando você cumpre ao menos metade dos hábitos ativos.",
+    "range": "Período",
+    "week": "Semana",
+    "month": "Mês",
+    "chartTitle": "Movimento e estresse percebido",
+    "tableCaption": "Minutos de movimento e estresse percebido por dia",
+    "colDay": "Dia",
+    "colMinutes": "Movimento (min)",
+    "colStress": "Estresse (1 a 5)",
+    "noStress": "Sem registro",
+    "axisMinutes": "Minutos de movimento",
+    "axisStress": "Estresse percebido",
+    "heatmapTitle": "Mapa de calor do mês",
+    "heatmapLabel": "{{date}}: {{percent}}% do checklist",
+    "achievementsTitle": "Conquistas",
+    "achievementUnlocked": "Desbloqueada em {{date}}",
+    "achievementLocked": "Ainda não desbloqueada",
+    "achievementToast": "Conquista desbloqueada: {{title}}",
+    "achievementsNote": "Sem ranking: as conquistas são só para você acompanhar a sua constância."
   }
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getMarkdown } from '@nexo/shared';
-import { Button } from '@nexo/ui';
+import { Button, toast } from '@nexo/ui';
 import { MarkdownView } from '../../components/MarkdownView';
 
 export interface ConsentStepProps {
@@ -19,6 +19,8 @@ export function ConsentStep({ reconsent, onAccept, onDecline }: ConsentStepProps
     setBusy(true);
     try {
       await fn();
+    } catch {
+      toast(t('errors.generic'));
     } finally {
       setBusy(false);
     }

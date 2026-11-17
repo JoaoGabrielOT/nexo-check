@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { dayProgress } from '@nexo/shared';
+import { dayProgress, toLocalDateKey } from '@nexo/shared';
 import type { Habit } from '@nexo/shared';
-import { Panel } from '@nexo/ui';
+import { Panel, toast } from '@nexo/ui';
+import { now } from '../../db/clock';
 import { getEntriesForDate, getHabits, setEntry } from '../../db';
 import { HabitRow } from './HabitRow';
 import { applyProgressive } from './progressive';
@@ -16,16 +17,17 @@ export function TodayPage() {
   const entries = useLiveQuery(() => getEntriesForDate(today), [today]);
 
   useEffect(() => {
-    void applyProgressive(today);
-  }, [today]);
+    applyProgressive(today).catch(() => toast(t('errors.generic')));
+  }, [today, t]);
 
   if (!habits || !entries) return null;
   const active = habits.filter((h) => h.active);
   const { done, total, ratio } = dayProgress(habits, entries, today);
   const percent = Math.round(ratio * 100);
   const byHabit = new Map(entries.map((e) => [e.habitId, e]));
+  // A data é lida na hora da escrita: um toque logo após a meia-noite, antes do timer, cai no dia novo.
   const set = (h: Habit) => (value: number, blocks?: number[]) =>
-    void setEntry(h, today, value, blocks);
+    void setEntry(h, toLocalDateKey(now()), value, blocks);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
