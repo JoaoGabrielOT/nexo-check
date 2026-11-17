@@ -11,3 +11,5 @@ export * from './privacy';
 export * from './csv';
 export * from './schemas/entities';
 export * from './schemas/api';
+export * from './schemas/questionnaire';
+export * from './content';

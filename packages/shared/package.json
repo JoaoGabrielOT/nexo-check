@@ -5,6 +5,7 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
+    "content:build": "node scripts/build-content.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

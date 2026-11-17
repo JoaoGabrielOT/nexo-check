@@ -7,3 +7,4 @@ docs/piloto-nexo.html
 .claude
 .superpowers
 docs
+packages/shared/src/content.generated.ts

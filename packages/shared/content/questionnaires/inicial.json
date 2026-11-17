@@ -1,0 +1,97 @@
+{
+  "kind": "inicial",
+  "version": 1,
+  "draft": true,
+  "title": "Questionário inicial",
+  "intro": "Rascunho — revisar e aprovar pelo grupo antes do piloto. Responder é voluntário, as perguntas são sobre a sua rotina, e você pode pular qualquer uma. Não é uma avaliação de saúde.",
+  "questions": [
+    {
+      "id": "af_dias_semana",
+      "type": "number",
+      "label": "Em quantos dias da semana você costuma fazer pelo menos 30 minutos de atividade física?",
+      "min": 0,
+      "max": 7,
+      "unit": "dias",
+      "comparable": true,
+      "group": "activity_frequency"
+    },
+    {
+      "id": "horas_sentado",
+      "type": "number",
+      "label": "Em média, quantas horas por dia você passa sentado(a)?",
+      "min": 0,
+      "max": 24,
+      "unit": "horas",
+      "comparable": true,
+      "group": "sedentary"
+    },
+    {
+      "id": "horas_sono",
+      "type": "number",
+      "label": "Em média, quantas horas você dorme por noite?",
+      "min": 0,
+      "max": 24,
+      "unit": "horas",
+      "comparable": true,
+      "group": "sleep"
+    },
+    {
+      "id": "qualidade_sono",
+      "type": "scale",
+      "label": "Como você avalia a qualidade do seu sono? (1 = muito ruim, 5 = muito boa)",
+      "min": 1,
+      "max": 5,
+      "comparable": true,
+      "group": "sleep"
+    },
+    {
+      "id": "estresse_percebido",
+      "type": "scale",
+      "label": "Como você avalia o seu nível de estresse nas últimas semanas? (1 = muito baixo, 5 = muito alto)",
+      "min": 1,
+      "max": 5,
+      "comparable": true,
+      "group": "stress"
+    },
+    {
+      "id": "dificuldades_rotina",
+      "type": "multi",
+      "label": "O que mais dificulta a prática de atividade física na sua rotina? (marque quantas quiser)",
+      "options": [
+        {
+          "value": "tempo",
+          "label": "Falta de tempo"
+        },
+        {
+          "value": "cansaco",
+          "label": "Cansaço"
+        },
+        {
+          "value": "motivacao",
+          "label": "Falta de motivação"
+        },
+        {
+          "value": "espaco",
+          "label": "Falta de local ou de espaço"
+        },
+        {
+          "value": "custo",
+          "label": "Custo"
+        },
+        {
+          "value": "saude",
+          "label": "Condição de saúde ou limitação física"
+        },
+        {
+          "value": "nenhuma",
+          "label": "Nenhuma dificuldade"
+        }
+      ]
+    },
+    {
+      "id": "dificuldades_outro",
+      "type": "text",
+      "label": "Quer comentar alguma outra dificuldade? (opcional; este texto fica só no seu aparelho)"
+    }
+  ]
+}

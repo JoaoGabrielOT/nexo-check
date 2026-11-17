@@ -1,0 +1,209 @@
+{
+  "kind": "educativo",
+  "version": 1,
+  "draft": true,
+  "title": "Questionário educativo",
+  "intro": "Rascunho — revisar e aprovar pelo grupo antes do piloto. Perguntas sobre o conteúdo das oficinas e da aba Aprender. Não vale nota na faculdade; mostramos o resultado e as respostas corretas ao final.",
+  "questions": [
+    {
+      "id": "edu_bdnf",
+      "type": "single",
+      "label": "O que é o BDNF?",
+      "options": [
+        {
+          "value": "proteina",
+          "label": "Uma proteína ligada à comunicação entre neurônios e à plasticidade neural"
+        },
+        {
+          "value": "hormonio_sono",
+          "label": "Um hormônio que induz o sono"
+        },
+        {
+          "value": "vitamina",
+          "label": "Uma vitamina obtida só pela alimentação"
+        }
+      ],
+      "correct": "proteina"
+    },
+    {
+      "id": "edu_bdnf_sangue",
+      "type": "single",
+      "label": "Um aumento de BDNF medido no sangue comprova neurogênese no cérebro humano?",
+      "options": [
+        {
+          "value": "sim",
+          "label": "Sim, comprova"
+        },
+        {
+          "value": "nao",
+          "label": "Não, não comprova por si só"
+        },
+        {
+          "value": "sempre",
+          "label": "Sim, em todas as pessoas"
+        }
+      ],
+      "correct": "nao"
+    },
+    {
+      "id": "edu_hipocampo",
+      "type": "single",
+      "label": "Qual é uma função associada ao hipocampo?",
+      "options": [
+        {
+          "value": "memoria",
+          "label": "Memória e aprendizagem"
+        },
+        {
+          "value": "digestao",
+          "label": "Digestão"
+        },
+        {
+          "value": "visao",
+          "label": "Controle dos movimentos dos olhos"
+        }
+      ],
+      "correct": "memoria"
+    },
+    {
+      "id": "edu_hpa",
+      "type": "single",
+      "label": "O que o eixo HPA coordena?",
+      "options": [
+        {
+          "value": "estresse",
+          "label": "A resposta do corpo ao estresse, incluindo o cortisol"
+        },
+        {
+          "value": "respiracao",
+          "label": "Apenas a respiração"
+        },
+        {
+          "value": "crescimento_osseo",
+          "label": "O crescimento dos ossos"
+        }
+      ],
+      "correct": "estresse"
+    },
+    {
+      "id": "edu_recompensa",
+      "type": "single",
+      "label": "Os circuitos de recompensa estão ligados a quê?",
+      "options": [
+        {
+          "value": "motivacao",
+          "label": "Motivação, prazer e humor"
+        },
+        {
+          "value": "equilibrio",
+          "label": "Somente ao equilíbrio"
+        },
+        {
+          "value": "audicao",
+          "label": "À audição"
+        }
+      ],
+      "correct": "motivacao"
+    },
+    {
+      "id": "edu_prefrontal",
+      "type": "single",
+      "label": "O córtex pré-frontal participa de quê?",
+      "options": [
+        {
+          "value": "executivas",
+          "label": "Planejamento, atenção e autorregulação (funções executivas)"
+        },
+        {
+          "value": "batimentos",
+          "label": "Dos batimentos do coração"
+        },
+        {
+          "value": "reflexos",
+          "label": "Apenas de reflexos da medula"
+        }
+      ],
+      "correct": "executivas"
+    },
+    {
+      "id": "edu_intensidade",
+      "type": "single",
+      "label": "Qual é a intensidade das atividades propostas nas oficinas?",
+      "options": [
+        {
+          "value": "leve_moderada",
+          "label": "Leve a moderada, com adaptações"
+        },
+        {
+          "value": "maxima",
+          "label": "Sempre máxima"
+        },
+        {
+          "value": "obrigatoria_alta",
+          "label": "Alta e obrigatória para todos"
+        }
+      ],
+      "correct": "leve_moderada"
+    },
+    {
+      "id": "edu_modalidade",
+      "type": "single",
+      "label": "Como o treino intervalado de alta intensidade é apresentado no projeto?",
+      "options": [
+        {
+          "value": "estudada",
+          "label": "Como modalidade estudada, sem ser obrigatório"
+        },
+        {
+          "value": "obrigatorio",
+          "label": "Como atividade obrigatória"
+        },
+        {
+          "value": "objetivo",
+          "label": "Como o objetivo principal das oficinas"
+        }
+      ],
+      "correct": "estudada"
+    },
+    {
+      "id": "edu_huang",
+      "type": "single",
+      "label": "O que a metanálise de Huang et al. (2024) reuniu?",
+      "options": [
+        {
+          "value": "estudos_59",
+          "label": "59 estudos sobre atividade física em universitários, com efeitos favoráveis sobre ansiedade, depressão e estresse e baixa certeza geral das evidências"
+        },
+        {
+          "value": "estudo_1",
+          "label": "Um único estudo com 20 pessoas"
+        },
+        {
+          "value": "notas",
+          "label": "Estudos que mostram melhora de notas"
+        }
+      ],
+      "correct": "estudos_59"
+    },
+    {
+      "id": "edu_parar",
+      "type": "single",
+      "label": "O que fazer se sentir dor, tontura ou falta de ar durante uma atividade?",
+      "options": [
+        {
+          "value": "parar",
+          "label": "Parar, descansar e, se necessário, buscar orientação"
+        },
+        {
+          "value": "continuar",
+          "label": "Continuar mais devagar sem interromper"
+        },
+        {
+          "value": "aumentar",
+          "label": "Aumentar o ritmo"
+        }
+      ],
+      "correct": "parar"
+    }
+  ]
+}

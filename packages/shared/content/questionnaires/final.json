@@ -1,0 +1,145 @@
+{
+  "kind": "final",
+  "version": 1,
+  "draft": true,
+  "title": "Questionário final",
+  "intro": "Rascunho — revisar e aprovar pelo grupo antes do piloto. Repete as perguntas iniciais para comparar antes e depois, sem meta predefinida, e pergunta como foi a sua experiência. Responder é voluntário.",
+  "questions": [
+    {
+      "id": "af_dias_semana",
+      "type": "number",
+      "label": "Em quantos dias da semana você costuma fazer pelo menos 30 minutos de atividade física?",
+      "min": 0,
+      "max": 7,
+      "unit": "dias",
+      "comparable": true,
+      "group": "activity_frequency"
+    },
+    {
+      "id": "horas_sentado",
+      "type": "number",
+      "label": "Em média, quantas horas por dia você passa sentado(a)?",
+      "min": 0,
+      "max": 24,
+      "unit": "horas",
+      "comparable": true,
+      "group": "sedentary"
+    },
+    {
+      "id": "horas_sono",
+      "type": "number",
+      "label": "Em média, quantas horas você dorme por noite?",
+      "min": 0,
+      "max": 24,
+      "unit": "horas",
+      "comparable": true,
+      "group": "sleep"
+    },
+    {
+      "id": "qualidade_sono",
+      "type": "scale",
+      "label": "Como você avalia a qualidade do seu sono? (1 = muito ruim, 5 = muito boa)",
+      "min": 1,
+      "max": 5,
+      "comparable": true,
+      "group": "sleep"
+    },
+    {
+      "id": "estresse_percebido",
+      "type": "scale",
+      "label": "Como você avalia o seu nível de estresse nas últimas semanas? (1 = muito baixo, 5 = muito alto)",
+      "min": 1,
+      "max": 5,
+      "comparable": true,
+      "group": "stress"
+    },
+    {
+      "id": "satisfacao_1",
+      "type": "scale",
+      "label": "As oficinas foram fáceis de entender. (1 = discordo totalmente, 5 = concordo totalmente)",
+      "min": 1,
+      "max": 5,
+      "group": "satisfaction"
+    },
+    {
+      "id": "satisfacao_2",
+      "type": "scale",
+      "label": "As atividades de movimento respeitaram os meus limites. (1 = discordo totalmente, 5 = concordo totalmente)",
+      "min": 1,
+      "max": 5,
+      "group": "satisfaction"
+    },
+    {
+      "id": "satisfacao_3",
+      "type": "scale",
+      "label": "O conteúdo sobre exercício e cérebro foi útil para mim. (1 = discordo totalmente, 5 = concordo totalmente)",
+      "min": 1,
+      "max": 5,
+      "group": "satisfaction"
+    },
+    {
+      "id": "satisfacao_4",
+      "type": "scale",
+      "label": "Eu recomendaria as oficinas a outros estudantes. (1 = discordo totalmente, 5 = concordo totalmente)",
+      "min": 1,
+      "max": 5,
+      "group": "satisfaction"
+    },
+    {
+      "id": "satisfacao_5",
+      "type": "scale",
+      "label": "O app NEXO Check foi fácil de usar. (1 = discordo totalmente, 5 = concordo totalmente)",
+      "min": 1,
+      "max": 5,
+      "group": "satisfaction"
+    },
+    {
+      "id": "experimentou_atividade",
+      "type": "single",
+      "label": "Você experimentou alguma atividade de movimento sugerida pelo projeto?",
+      "options": [
+        {
+          "value": "sim",
+          "label": "Sim"
+        },
+        {
+          "value": "nao",
+          "label": "Não"
+        }
+      ],
+      "group": "adherence"
+    },
+    {
+      "id": "atividades_experimentadas",
+      "type": "multi",
+      "label": "Se sim, quais? (marque quantas quiser)",
+      "options": [
+        {
+          "value": "pausas_ativas",
+          "label": "Pausas ativas"
+        },
+        {
+          "value": "caminhada",
+          "label": "Caminhada"
+        },
+        {
+          "value": "mobilidade",
+          "label": "Mobilidade"
+        },
+        {
+          "value": "respiracao",
+          "label": "Respiração"
+        },
+        {
+          "value": "sono",
+          "label": "Hábitos de sono"
+        },
+        {
+          "value": "outra",
+          "label": "Outra atividade"
+        }
+      ],
+      "group": "adherence"
+    }
+  ]
+}

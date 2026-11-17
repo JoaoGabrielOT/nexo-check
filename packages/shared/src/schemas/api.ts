@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normalizeCode } from '../codes';
 import { syncChangeSchema } from './entities';
+import { answers } from './questionnaire';
 
 const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const iso = z.iso.datetime();
@@ -27,7 +28,7 @@ export const questionnaireSubmit = z.object({
   id: z.string().min(1),
   kind: z.string().min(1),
   version: z.union([z.number(), z.string()]),
-  answers: z.record(z.string(), z.union([z.number(), z.string(), z.array(z.string())])),
+  answers,
   submittedAt: iso,
 });
 export const questionnaireSubmitResponse = z.object({ score: z.number().nullable() });
