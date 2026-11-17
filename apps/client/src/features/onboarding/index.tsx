@@ -1,6 +1,7 @@
-import { useTranslation } from 'react-i18next';
+import { OnboardingPage } from './OnboardingPage';
 
-export function OnboardingPage() {
-  const { t } = useTranslation();
-  return <h1 className="text-3xl font-extrabold tracking-tight">{t('pages.onboarding')}</h1>;
+export { OnboardingPage };
+
+export function ReconsentPage() {
+  return <OnboardingPage reconsent />;
 }

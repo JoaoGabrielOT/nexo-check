@@ -3,7 +3,7 @@ import type { RouteObject } from 'react-router';
 import { CheckinPage } from '../features/checkin';
 import { ArticlePage, LearnPage } from '../features/learn';
 import { LogPage } from '../features/log';
-import { OnboardingPage } from '../features/onboarding';
+import { OnboardingPage, ReconsentPage } from '../features/onboarding';
 import { ProgressPage } from '../features/progress';
 import { ProjectPage, QuestionnairePage } from '../features/project';
 import { SettingsPage } from '../features/settings';
@@ -40,6 +40,7 @@ export const routes: RouteObject[] = [
       { path: 'checkin', element: <CheckinPage /> },
       { path: 'config', element: <SettingsPage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
+      { path: 'onboarding/consentimento', element: <ReconsentPage /> },
       ...adminRoutes,
     ],
   },

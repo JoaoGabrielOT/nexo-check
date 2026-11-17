@@ -42,6 +42,7 @@ export const appSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   reminders: reminderSettingsSchema,
   syncCursor: z.string().nullable(),
+  progressiveCheckedOn: z.string().optional(),
   lastSyncAt: iso.nullable(),
   unlockedAchievements: z.array(z.object({ id: achievementId, at: iso })),
 });

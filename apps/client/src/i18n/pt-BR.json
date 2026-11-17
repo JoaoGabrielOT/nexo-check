@@ -63,5 +63,47 @@
       "title": "Questionário inicial",
       "description": "Você respondeu ao questionário inicial do projeto."
     }
+  },
+  "today": {
+    "progressLabel": "Progresso do dia",
+    "progressText": "{{done}} de {{total}} hábitos",
+    "movementHint": "Leve a moderado, no seu ritmo. Pode ser dividido em blocos.",
+    "footerNotice": "Respeite seus limites. O app não substitui acompanhamento profissional.",
+    "markDone": "Marcar {{name}} como feita",
+    "increase": "Aumentar {{name}}",
+    "decrease": "Diminuir {{name}}",
+    "addMinutes": "Adicionar {{minutes}} minutos a {{name}}",
+    "removeBlock": "Remover bloco de {{minutes}} minutos de {{name}}",
+    "blockChip": "{{minutes}} min",
+    "minutesProgress": "{{value}} / {{target}} min",
+    "counterProgress": "{{value}} / {{target}}",
+    "hoursIncrease": "Aumentar 0,5 h de {{name}}",
+    "hoursDecrease": "Diminuir 0,5 h de {{name}}",
+    "hours": "{{value}} h",
+    "hoursEmpty": "– h",
+    "hoursTarget": "Meta: {{min}} a {{max}} h",
+    "hoursTargetMin": "Meta: a partir de {{min}} h"
+  },
+  "onboarding": {
+    "welcomeTitle": "Boas-vindas",
+    "welcomeIntro": "O NEXO Check é um checklist diário de hábitos do projeto NEXO em Movimento. Antes de começar, leia os avisos abaixo.",
+    "next": "Continuar",
+    "consentTitle": "Participação na pesquisa",
+    "consentIntro": "Você pode usar o app sem enviar nenhum dado. Se quiser participar da pesquisa, usamos seus registros de forma anônima e agregada, apenas para avaliar o projeto acadêmico. Você pode mudar de ideia depois, nas configurações.",
+    "reconsentIntro": "O texto de consentimento foi atualizado. Leia e escolha como quer continuar.",
+    "readFull": "Ler o texto completo",
+    "hideFull": "Ocultar o texto completo",
+    "fullRegion": "Texto completo do consentimento",
+    "accept": "Concordo e quero participar da pesquisa",
+    "decline": "Usar sem enviar dados",
+    "codeTitle": "Seu código de participante",
+    "codeLabel": "Código de participante",
+    "keyLabel": "Chave de recuperação",
+    "copy": "Copiar",
+    "copyCode": "Copiar código de participante",
+    "copyKey": "Copiar chave de recuperação",
+    "copied": "Copiado",
+    "keepKey": "Guarde sua chave: ela é necessária para recuperar seus dados em outro aparelho.",
+    "start": "Começar"
   }
 }
