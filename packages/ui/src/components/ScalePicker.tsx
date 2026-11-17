@@ -24,6 +24,8 @@ export function ScalePicker({
   className,
 }: ScalePickerProps) {
   const labelId = useId();
+  const lowId = `${labelId}-low`;
+  const highId = `${labelId}-high`;
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <span id={labelId} className="font-extrabold">
@@ -41,6 +43,9 @@ export function ScalePicker({
             key={n}
             value={String(n)}
             aria-label={String(n)}
+            aria-describedby={
+              n === 1 && lowLabel ? lowId : n === 5 && highLabel ? highId : undefined
+            }
             className={
               'min-h-11 min-w-11 cursor-pointer rounded-full border-2 border-border bg-transparent font-extrabold text-text transition-colors ' +
               'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl ' +
@@ -53,9 +58,9 @@ export function ScalePicker({
         ))}
       </RadioGroup.Root>
       {(lowLabel ?? highLabel) && (
-        <div className="flex justify-between text-sm text-muted" aria-hidden="true">
-          <span>{lowLabel}</span>
-          <span>{highLabel}</span>
+        <div className="flex justify-between text-sm text-muted">
+          <span id={lowId}>{lowLabel}</span>
+          <span id={highId}>{highLabel}</span>
         </div>
       )}
     </div>

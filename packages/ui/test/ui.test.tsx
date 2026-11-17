@@ -1,7 +1,17 @@
 import { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Alert, Button, DecorativePills, ScalePicker, type ScaleValue } from '../src';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  Alert,
+  Button,
+  DecorativePills,
+  ScalePicker,
+  type ScaleValue,
+} from '../src';
 
 describe('Button', () => {
   it('é pílula e tem alvo de toque de 44px', () => {
@@ -60,5 +70,55 @@ describe('ScalePicker', () => {
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(3));
     await user.keyboard('{/ArrowRight}');
     expect(screen.getByRole('radio', { name: '3' })).toBeChecked();
+  });
+});
+
+describe('Tabs', () => {
+  function Demo() {
+    return (
+      <div className="dark">
+        <Tabs defaultValue="a">
+          <TabsList>
+            <TabsTrigger value="a">Aba A</TabsTrigger>
+            <TabsTrigger value="b">Aba B</TabsTrigger>
+          </TabsList>
+          <TabsContent value="a">A</TabsContent>
+          <TabsContent value="b">B</TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+
+  it('clicar troca a aba selecionada', async () => {
+    const user = userEvent.setup();
+    render(<Demo />);
+    expect(screen.getByRole('tab', { name: 'Aba A' })).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByRole('tab', { name: 'Aba B' }));
+    expect(screen.getByRole('tab', { name: 'Aba B' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Aba A' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('no escuro a aba inativa se distingue da ativa', () => {
+    render(<Demo />);
+    expect(screen.getByRole('tab', { name: 'Aba B' })).toHaveClass('dark:bg-surface');
+    expect(screen.getByRole('tab', { name: 'Aba A' })).toHaveClass(
+      'dark:data-[state=active]:bg-lav2',
+    );
+  });
+});
+
+describe('ScalePicker rótulos das extremidades', () => {
+  it('são lidos como descrição das opções 1 e 5', () => {
+    render(
+      <ScalePicker
+        label="Humor"
+        lowLabel="Muito mal"
+        highLabel="Muito bem"
+        value={null}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByRole('radio', { name: '1' })).toHaveAccessibleDescription('Muito mal');
+    expect(screen.getByRole('radio', { name: '5' })).toHaveAccessibleDescription('Muito bem');
   });
 });
