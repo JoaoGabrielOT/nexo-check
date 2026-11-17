@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- índices conhecidos nos fixtures */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultHabits, CONSENT_VERSION } from '@nexo/shared';
 import type { Habit, SyncChange } from '@nexo/shared';
 import { db, resetDbForTests } from '../../src/db/db';
@@ -247,13 +247,61 @@ describe('questionários e check-ins', () => {
 });
 
 describe('backup', () => {
-  it('importAll com arquivo inválido rejeita e preserva os dados', async () => {
-    await setEntry(habit(), '2026-01-02', 10);
-    await expect(importAll({ app: 'outro' })).rejects.toBeInstanceOf(BackupError);
-    await expect(importAll({ app: 'outro' })).rejects.toMatchObject({
-      messageKey: 'errors.backup.invalid',
+  const snapshot = async () => ({
+    entries: await db.habitEntries.toArray(),
+    settings: await db.settings.toArray(),
+    outbox: await db.outbox.toArray(),
+  });
+
+  describe('importAll rejeita sem alterar nada', () => {
+    const seed = async () => {
+      await consent();
+      await updateSettings({ syncCursor: 'cur-1' });
+      await setEntry(habit(), '2026-01-02', 10);
+      return snapshot();
+    };
+    const validBackup = async () => JSON.parse(JSON.stringify(await exportAll()));
+
+    const cases: [string, () => Promise<unknown>][] = [
+      ['app errado', async () => ({ app: 'outro' })],
+      [
+        'cabeçalho válido e habitEntries[0] inválido',
+        async () => {
+          const b = await validBackup();
+          b.data.habitEntries[0].date = 'ontem';
+          return b;
+        },
+      ],
+      ['schemaVersion 2', async () => ({ ...(await validBackup()), schemaVersion: 2 })],
+      ['null', async () => null],
+      ['texto', async () => 'texto'],
+      ['undefined', async () => undefined],
+    ];
+
+    it.each(cases)('%s', async (_name, build) => {
+      const before = await seed();
+      const input = await build();
+      await expect(importAll(input)).rejects.toBeInstanceOf(BackupError);
+      await expect(importAll(input)).rejects.toMatchObject({
+        messageKey: 'errors.backup.invalid',
+      });
+      expect(await snapshot()).toEqual(before);
+      expect(before.entries).toHaveLength(1);
+      expect(before.outbox).toHaveLength(1);
     });
-    expect(await getEntriesForDate('2026-01-02')).toHaveLength(1);
+
+    it('falha no meio da transação desfaz tudo (rollback)', async () => {
+      const before = await seed();
+      const backup = await validBackup();
+      await saveDailyLog(log('2026-01-05'));
+      const withLog = await snapshot();
+      const spy = vi.spyOn(db.dailyLogs, 'bulkPut').mockRejectedValueOnce(new Error('x'));
+      await expect(importAll(backup)).rejects.toThrow();
+      spy.mockRestore();
+      expect(await snapshot()).toEqual(withLog);
+      expect(withLog.entries).toEqual(before.entries);
+      expect(await getDailyLog('2026-01-05')).toBeDefined();
+    });
   });
 
   it('importAll(await exportAll()) restaura tudo após wipeLocal e limpa o outbox', async () => {
@@ -285,7 +333,37 @@ describe('backup', () => {
     const s = await getSettings();
     expect(s.participant?.code).toBe('NEXO-ABCD');
     expect(s.consent?.granted).toBe(true);
+  });
+
+  it('com consentimento válido reenfileira cada linha sincronizável, sem notas, e zera o cursor', async () => {
+    await consent();
+    await updateSettings({ syncCursor: 'cur-1' });
+    await ensureDefaultHabits(new Date('2026-01-01T00:00:00Z'));
+    const h = (await getHabits())[0]!;
+    await setEntry(h, '2026-01-02', 10);
+    await saveDailyLog(log('2026-01-02'));
+    const backup = JSON.parse(JSON.stringify(await exportAll()));
+    await wipeLocal();
+    await importAll(backup);
+    const items = await peekOutbox(100);
+    const count = (e: string) => items.filter((i) => i.change.entity === e).length;
+    expect(items).toHaveLength(8);
+    expect([count('habit'), count('habitEntry'), count('dailyLog')]).toEqual([6, 1, 1]);
+    for (const i of items) {
+      if (i.change.entity === 'dailyLog') expect(i.change.payload.note).toBeNull();
+    }
+    expect((await getSettings()).syncCursor).toBeNull();
+    expect((await getDailyLog('2026-01-02'))?.note).toBe('segredo');
+  });
+
+  it('sem consentimento a importação deixa o outbox vazio e mantém o cursor', async () => {
+    await updateSettings({ syncCursor: 'cur-1' });
+    await ensureDefaultHabits(new Date('2026-01-01T00:00:00Z'));
+    const backup = JSON.parse(JSON.stringify(await exportAll()));
+    await wipeLocal();
+    await importAll(backup);
     expect(await outboxCount()).toBe(0);
+    expect((await getSettings()).syncCursor).toBe('cur-1');
   });
 
   it('wipeLocal limpa settings e outbox', async () => {

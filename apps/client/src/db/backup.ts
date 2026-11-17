@@ -1,5 +1,7 @@
+import { CONSENT_VERSION } from '@nexo/shared';
 import type { DailyLog } from '@nexo/shared';
 import { db } from './db';
+import { enqueueIfConsented } from './repos/outbox';
 import { getSettings } from './repos/settings';
 import { backupFileSchema, type BackupFile } from './schemas';
 
@@ -38,7 +40,19 @@ export async function importAll(file: unknown): Promise<void> {
     await db.dailyLogs.bulkPut(data.dailyLogs as DailyLog[]);
     await db.questionnaireResponses.bulkPut(data.questionnaireResponses);
     await db.checkins.bulkPut(data.checkins);
-    await db.settings.put({ key: 'app', value: data.settings });
+    const consented =
+      !!data.settings.consent?.granted && data.settings.consent.version >= CONSENT_VERSION;
+    // O backup não leva o outbox: com consentimento válido, reenvia tudo (LWW no servidor
+    // torna o reenvio inofensivo) e zera o cursor para reconciliar com o servidor.
+    await db.settings.put({
+      key: 'app',
+      value: consented ? { ...data.settings, syncCursor: null } : data.settings,
+    });
+    if (consented) {
+      for (const h of await db.habits.toArray()) await enqueueIfConsented('habit', h);
+      for (const e of await db.habitEntries.toArray()) await enqueueIfConsented('habitEntry', e);
+      for (const l of await db.dailyLogs.toArray()) await enqueueIfConsented('dailyLog', l);
+    }
   });
 }
 
