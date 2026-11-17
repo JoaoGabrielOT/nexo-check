@@ -50,6 +50,9 @@ export const dailyLogSchema = z.object({
   note: z.string().nullable(),
 });
 
+/** Payload de sincronização: texto livre nunca sai do dispositivo. */
+export const dailyLogSyncPayloadSchema = dailyLogSchema.extend({ note: z.null() });
+
 export const syncEntityName = z.enum(['habit', 'habitEntry', 'dailyLog']);
 
 const changeBase = {
@@ -61,7 +64,7 @@ const changeBase = {
 export const syncChangeSchema = z.discriminatedUnion('entity', [
   z.object({ ...changeBase, entity: z.literal('habit'), payload: habitSchema }),
   z.object({ ...changeBase, entity: z.literal('habitEntry'), payload: habitEntrySchema }),
-  z.object({ ...changeBase, entity: z.literal('dailyLog'), payload: dailyLogSchema }),
+  z.object({ ...changeBase, entity: z.literal('dailyLog'), payload: dailyLogSyncPayloadSchema }),
 ]);
 
 export type SyncChange = z.infer<typeof syncChangeSchema>;

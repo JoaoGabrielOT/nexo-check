@@ -41,7 +41,7 @@ describe('computeStreak', () => {
     expect(computeStreak(r, '2028-03-01')).toEqual({ current: 3, best: 3 });
   });
 
-  test('datas futuras n�o entram no best', () => {
+  test('datas futuras não entram no best', () => {
     const r = { '2026-03-01': 1, '2026-03-05': 1, '2026-03-06': 1, '2026-03-07': 1 };
     expect(computeStreak(r, '2026-03-02')).toEqual({ current: 1, best: 1 });
   });

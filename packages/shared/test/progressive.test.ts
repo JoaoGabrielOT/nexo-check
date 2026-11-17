@@ -14,7 +14,7 @@ describe('nextProgressiveTarget', () => {
     expect(nextProgressiveTarget(30, [t, t, t, t, t, t, t], 30)).toBe(30);
     expect(nextProgressiveTarget(28, [t, t, t, t, t, t, t], 30)).toBe(30);
   });
-  test('meta j� acima do teto nunca � reduzida', () => {
+  test('meta já acima do teto nunca é reduzida', () => {
     expect(nextProgressiveTarget(40, [t, t, t, t, t, t, t], 30)).toBe(40);
   });
 });

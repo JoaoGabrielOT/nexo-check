@@ -62,6 +62,25 @@ describe('schemas', () => {
     expect(dailyLogSchema.safeParse({ ...log, mood: 2.5 }).success).toBe(false);
     expect(dailyLogSchema.safeParse({ ...log, date: '01/03/2026' }).success).toBe(false);
   });
+  test('sync de dailyLog só aceita note null; schema local mantém a nota', () => {
+    const log = {
+      ...meta,
+      date: '2026-03-01',
+      stress: 3,
+      mood: 3,
+      energy: 3,
+      sleepQuality: 3,
+      note: null,
+    };
+    const dl = (note: string | null) => ({
+      ...change(1),
+      entity: 'dailyLog' as const,
+      payload: { ...log, note },
+    });
+    expect(syncChangeSchema.safeParse(dl('texto')).success).toBe(false);
+    expect(syncChangeSchema.safeParse(dl(null)).success).toBe(true);
+    expect(dailyLogSchema.safeParse({ ...log, note: 'texto' }).success).toBe(true);
+  });
   test('checkin normaliza o código de sessão', () => {
     expect(checkinRequest.parse({ sessionCode: ' ab3cde ', clientId: 'c' }).sessionCode).toBe(
       'AB3CDE',
