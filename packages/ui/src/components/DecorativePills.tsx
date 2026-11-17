@@ -1,7 +1,7 @@
 import { cn } from '../lib/cn';
 
-// Pílulas fixas do piloto (.blob/.l1/.l2): parcialmente fora da tela e atrás do conteúdo.
-const pill = 'fixed -z-10 h-[110px] w-[70px] rounded-[35px]';
+// Pílulas fixas do piloto (.blob/.l1/.l2): parcialmente fora da tela e atrás do conteúdo (o conteúdo da página usa relative z-10).
+const pill = 'fixed z-0 h-[110px] w-[70px] rounded-[35px]';
 
 export function DecorativePills({ className }: { className?: string }) {
   return (

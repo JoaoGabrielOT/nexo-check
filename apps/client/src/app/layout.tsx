@@ -16,8 +16,8 @@ const NAV_ITEMS: { to: string; key: string; icon: ComponentType<{ className?: st
 const focusRing =
   'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl';
 
-// O fundo fica em html/body (index.css): nenhum ancestral aqui é opaco, para as
-// DecorativePills (fixed, -z-10) aparecerem acima do fundo e abaixo do conteúdo.
+// O fundo fica só no html (index.css). As DecorativePills são fixed z-0 e o
+// conteúdo (header, nav e main) fica acima delas com z-10/z-30, sem z-index negativo.
 export function Layout() {
   const { t } = useTranslation();
   return (
@@ -70,7 +70,7 @@ export function Layout() {
       <main
         id="conteudo"
         tabIndex={-1}
-        className="px-[6vw] pt-4 pb-28 outline-none lg:pb-10 lg:pl-60"
+        className="relative z-10 px-[6vw] pt-4 pb-28 outline-none lg:pb-10 lg:pl-60"
       >
         <Outlet />
       </main>
