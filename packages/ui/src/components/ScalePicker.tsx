@@ -57,7 +57,7 @@ export function ScalePicker({
           </RadioGroup.Item>
         ))}
       </RadioGroup.Root>
-      {(lowLabel ?? highLabel) && (
+      {(lowLabel || highLabel) && (
         <div className="flex justify-between text-sm text-muted">
           <span id={lowId}>{lowLabel}</span>
           <span id={highId}>{highLabel}</span>
