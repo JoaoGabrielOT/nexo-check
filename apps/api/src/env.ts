@@ -1,8 +1,11 @@
 import { z } from 'zod';
 
+// Variável vazia (`FOO=` no .env) conta como ausente.
+const emptyToUndefined = (v: unknown) => (v === '' ? undefined : v);
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
-  DIRECT_URL: z.string().min(1).optional(),
+  DIRECT_URL: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   ADMIN_PASSWORD: z.string().min(12),
   ADMIN_JWT_SECRET: z.string().min(32),
   CORS_ORIGINS: z
@@ -11,12 +14,15 @@ const envSchema = z.object({
     .transform((v) =>
       v
         .split(',')
-        .map((o) => o.trim())
+        .map((o) => o.trim().replace(/\/+$/, ''))
         .filter(Boolean),
     ),
   PUBLIC_WEB_URL: z.url(),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3333),
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(65535).default(3333)),
+  NODE_ENV: z.preprocess(
+    emptyToUndefined,
+    z.enum(['development', 'test', 'production']).default('development'),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

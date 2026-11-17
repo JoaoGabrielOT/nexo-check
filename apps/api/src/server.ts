@@ -6,16 +6,25 @@ const env = parseEnv();
 const prisma = createPrisma(env.DATABASE_URL);
 const app = await buildApp({ prisma, env });
 
-const shutdown = async () => {
-  await app.close();
-  await prisma.$disconnect();
+// Fechar o app também desconecta o Prisma (hook onClose em buildApp).
+let closing = false;
+const shutdown = async (code: number) => {
+  if (closing) return;
+  closing = true;
+  try {
+    await app.close();
+  } catch (err) {
+    console.error(err);
+    code = 1;
+  }
+  process.exit(code);
 };
-process.once('SIGTERM', () => void shutdown());
-process.once('SIGINT', () => void shutdown());
+process.once('SIGTERM', () => void shutdown(0));
+process.once('SIGINT', () => void shutdown(0));
 
 try {
   await app.listen({ host: '0.0.0.0', port: env.PORT });
 } catch (err) {
   app.log.error(err);
-  process.exit(1);
+  await shutdown(1);
 }

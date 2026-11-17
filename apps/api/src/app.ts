@@ -14,7 +14,8 @@ const TAURI_ORIGINS = ['tauri://localhost', 'http://tauri.localhost', 'https://t
 export interface BuildAppOptions {
   prisma: PrismaClient;
   env: Env;
-  now?: () => Date;
+  /** Limite global por IP por minuto (padrão 100); testes podem reduzir. */
+  rateLimitMax?: number;
 }
 
 function appVersion(): string {
@@ -25,6 +26,9 @@ function appVersion(): string {
 export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
   const { prisma, env } = opts;
   const app = Fastify({
+    // Atrás do proxy do Render o IP real vem em X-Forwarded-For; sem isso o rate limit
+    // agruparia todos os usuários no IP do proxy.
+    trustProxy: true,
     logger: env.NODE_ENV === 'test' ? false : { level: 'info' },
   });
 
@@ -34,11 +38,19 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     ...(env.NODE_ENV === 'development' ? ['http://localhost:5173'] : []),
   ]);
 
+  app.addHook('onClose', async () => {
+    await prisma.$disconnect();
+  });
+
   await app.register(helmet);
   await app.register(cors, {
     origin: (origin, cb) => cb(null, origin === undefined || origins.has(origin)),
   });
-  await app.register(rateLimit, { global: true, max: 100, timeWindow: '1 minute' });
+  await app.register(rateLimit, {
+    global: true,
+    max: opts.rateLimitMax ?? 100,
+    timeWindow: '1 minute',
+  });
 
   app.setErrorHandler((err: unknown, _req, reply) => {
     if (err instanceof ZodError) {

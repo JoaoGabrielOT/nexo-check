@@ -54,12 +54,58 @@ describe('GET /health', () => {
 describe('GET /health com o banco fora do ar', () => {
   it('continua respondendo 200 com db: error', async () => {
     const broken = {
-      $queryRaw: () => Promise.reject(new Error('conex�o recusada')),
+      $queryRaw: () => Promise.reject(new Error('conexão recusada')),
+      $disconnect: () => Promise.resolve(),
     } as unknown as PrismaClient;
     const app = await buildApp({ prisma: broken, env: testEnv });
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ status: 'ok', db: 'error' });
+    await app.close();
+  });
+});
+
+describe('rate limit e CORS normalizado', () => {
+  it('limita por IP do cliente (X-Forwarded-For), não pelo proxy', async () => {
+    const { app } = await makeTestApp({}, 3);
+    const get = (ip: string) =>
+      app.inject({ method: 'GET', url: '/health', headers: { 'x-forwarded-for': ip } });
+    for (let i = 0; i < 3; i++) expect((await get('203.0.113.1')).statusCode).toBe(200);
+    expect((await get('203.0.113.1')).statusCode).toBe(429);
+    expect((await get('203.0.113.2')).statusCode).toBe(200);
+    await app.close();
+  });
+
+  it('ignora barra final e espaços nas origens configuradas', async () => {
+    const { parseEnv } = await import('../src/env');
+    const env = parseEnv({
+      DATABASE_URL: 'x',
+      ADMIN_PASSWORD: 'senha-segura-123',
+      ADMIN_JWT_SECRET: 'x'.repeat(32),
+      PUBLIC_WEB_URL: 'https://nexo.example',
+      CORS_ORIGINS: ' https://nexo.example/ ',
+      NODE_ENV: 'test',
+    });
+    const { app } = await makeTestApp({ CORS_ORIGINS: env.CORS_ORIGINS });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: 'https://nexo.example' },
+    });
+    expect(res.headers['access-control-allow-origin']).toBe('https://nexo.example');
+    await app.close();
+  });
+
+  it('erro de validação Zod vira 400 invalid_request', async () => {
+    const { z } = await import('zod');
+    const app = await buildApp({
+      prisma: { $disconnect: () => Promise.resolve() } as unknown as PrismaClient,
+      env: testEnv,
+    });
+    app.post('/_t', async (req) => z.object({ n: z.number() }).parse(req.body));
+    const res = await app.inject({ method: 'POST', url: '/_t', payload: { n: 'x' } });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: 'invalid_request', message: expect.any(String) });
     await app.close();
   });
 });

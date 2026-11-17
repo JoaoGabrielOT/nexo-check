@@ -17,17 +17,14 @@ export const testEnv: Env = {
 
 export async function makeTestApp(
   overrides: Partial<Env> = {},
-  now?: () => Date,
+  rateLimitMax?: number,
 ): Promise<{ app: FastifyInstance; prisma: PrismaClient; reset: () => Promise<void> }> {
   const databaseUrl = inject('databaseUrl');
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
   const app = await buildApp({
     prisma,
     env: { ...testEnv, DATABASE_URL: databaseUrl, ...overrides },
-    ...(now ? { now } : {}),
-  });
-  app.addHook('onClose', async () => {
-    await prisma.$disconnect();
+    ...(rateLimitMax ? { rateLimitMax } : {}),
   });
   const reset = async () => {
     await prisma.$executeRawUnsafe(
