@@ -1,3 +1,14 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Scripts de instalação permitidos (embedded-postgres cria os symlinks das libs no Linux).
+onlyBuiltDependencies:
+  - '@embedded-postgres/windows-x64'
+  - '@embedded-postgres/linux-x64'
+  - '@embedded-postgres/linux-arm64'
+  - '@embedded-postgres/darwin-x64'
+  - '@embedded-postgres/darwin-arm64'
+  - '@prisma/engines'
+  - prisma
+  - esbuild

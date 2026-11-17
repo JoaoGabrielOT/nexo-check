@@ -1,0 +1,38 @@
+import { PrismaPg } from '@prisma/adapter-pg';
+import type { FastifyInstance } from 'fastify';
+import { inject } from 'vitest';
+import { buildApp } from '../src/app';
+import type { Env } from '../src/env';
+import { PrismaClient } from '../src/generated/prisma/client';
+
+export const testEnv: Env = {
+  DATABASE_URL: '',
+  ADMIN_PASSWORD: 'senha-admin-de-teste',
+  ADMIN_JWT_SECRET: 'segredo-jwt-de-teste-com-32-caracteres-ou-mais',
+  CORS_ORIGINS: ['https://nexo.example'],
+  PUBLIC_WEB_URL: 'https://nexo.example',
+  PORT: 3333,
+  NODE_ENV: 'test',
+};
+
+export async function makeTestApp(
+  overrides: Partial<Env> = {},
+  now?: () => Date,
+): Promise<{ app: FastifyInstance; prisma: PrismaClient; reset: () => Promise<void> }> {
+  const databaseUrl = inject('databaseUrl');
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
+  const app = await buildApp({
+    prisma,
+    env: { ...testEnv, DATABASE_URL: databaseUrl, ...overrides },
+    ...(now ? { now } : {}),
+  });
+  app.addHook('onClose', async () => {
+    await prisma.$disconnect();
+  });
+  const reset = async () => {
+    await prisma.$executeRawUnsafe(
+      'TRUNCATE TABLE participants, sync_records, questionnaire_responses, workshop_sessions, checkins RESTART IDENTITY CASCADE',
+    );
+  };
+  return { app, prisma, reset };
+}
