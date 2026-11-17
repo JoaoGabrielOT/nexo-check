@@ -9,6 +9,7 @@ export * from './semver';
 export * from './codes';
 export * from './privacy';
 export * from './csv';
+export * from './indicators';
 export * from './schemas/entities';
 export * from './schemas/api';
 export * from './schemas/questionnaire';
