@@ -42,3 +42,13 @@ export interface DailyLog extends SyncMeta {
   sleepQuality: Scale;
   note: string | null;
 }
+
+export type SyncEntityName = 'habit' | 'habitEntry' | 'dailyLog';
+
+export interface EntityPayloadMap {
+  habit: Habit;
+  habitEntry: HabitEntry;
+  dailyLog: DailyLog;
+}
+
+export type EntityPayload<T extends SyncEntityName> = EntityPayloadMap[T];
