@@ -5,7 +5,14 @@ import { dayProgress, toLocalDateKey } from '@nexo/shared';
 import type { Habit } from '@nexo/shared';
 import { Panel, toast } from '@nexo/ui';
 import { now } from '../../db/clock';
-import { getEntriesForDate, getHabits, setEntry } from '../../db';
+import {
+  adjustEntry,
+  appendBlock,
+  getEntriesForDate,
+  getHabits,
+  removeBlock,
+  setEntry,
+} from '../../db';
 import { HabitRow } from './HabitRow';
 import { applyProgressive } from './progressive';
 import { useToday } from './useToday';
@@ -26,8 +33,15 @@ export function TodayPage() {
   const percent = Math.round(ratio * 100);
   const byHabit = new Map(entries.map((e) => [e.habitId, e]));
   // A data é lida na hora da escrita: um toque logo após a meia-noite, antes do timer, cai no dia novo.
-  const set = (h: Habit) => (value: number, blocks?: number[]) =>
-    void setEntry(h, toLocalDateKey(now()), value, blocks);
+  const key = () => toLocalDateKey(now());
+  const report = () => toast(t('errors.generic'));
+  const actions = (h: Habit) => ({
+    onSet: (value: number) => void setEntry(h, key(), value).catch(report),
+    onAdjust: (delta: number, opts?: { min?: number; max?: number; from?: number }) =>
+      void adjustEntry(h, key(), delta, opts).catch(report),
+    onAppendBlock: (m: number) => void appendBlock(h, key(), m).catch(report),
+    onRemoveBlock: (i: number) => void removeBlock(h, key(), i).catch(report),
+  });
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -49,7 +63,7 @@ export function TodayPage() {
         </div>
       </Panel>
       {active.map((h) => (
-        <HabitRow key={h.id} habit={h} entry={byHabit.get(h.id)} onSet={set(h)} />
+        <HabitRow key={h.id} habit={h} entry={byHabit.get(h.id)} {...actions(h)} />
       ))}
       <p className="text-center text-sm opacity-80">{t('today.footerNotice')}</p>
     </div>

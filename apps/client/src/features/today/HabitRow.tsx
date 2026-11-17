@@ -7,7 +7,11 @@ import { Card, cn } from '@nexo/ui';
 export interface HabitRowProps {
   habit: Habit;
   entry: HabitEntry | undefined;
-  onSet: (value: number, blocks?: number[]) => void;
+  /** Mutações atômicas no banco: nunca recebem valores calculados a partir do estado renderizado. */
+  onSet: (value: number) => void;
+  onAdjust: (delta: number, opts?: { min?: number; max?: number; from?: number }) => void;
+  onAppendBlock: (minutes: number) => void;
+  onRemoveBlock: (index: number) => void;
 }
 
 const MINUTE_STEPS = [5, 10, 15] as const;
@@ -15,7 +19,6 @@ const DEFAULT_SLEEP_HOURS = 7;
 const HOUR_STEP = 0.5;
 const MAX_HOURS = 24;
 
-const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const fmtHours = (v: number) =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -26,7 +29,14 @@ const stepBtn = cn(
   focusRing,
 );
 
-export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
+export function HabitRow({
+  habit,
+  entry,
+  onSet,
+  onAdjust,
+  onAppendBlock,
+  onRemoveBlock,
+}: HabitRowProps) {
   const { t } = useTranslation();
   const met = isEntryMet(habit.type, entry);
   const value = entry?.value ?? 0;
@@ -66,7 +76,7 @@ export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
             className={stepBtn}
             aria-label={t('today.decrease', { name })}
             disabled={value <= 0}
-            onClick={() => onSet(Math.max(0, value - 1))}
+            onClick={() => onAdjust(-1)}
           >
             <Minus aria-hidden="true" className="size-5" />
           </button>
@@ -77,7 +87,7 @@ export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
             type="button"
             className={stepBtn}
             aria-label={t('today.increase', { name })}
-            onClick={() => onSet(value + 1)}
+            onClick={() => onAdjust(1)}
           >
             <Plus aria-hidden="true" className="size-5" />
           </button>
@@ -99,10 +109,7 @@ export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
                   focusRing,
                 )}
                 aria-label={t('today.addMinutes', { minutes: m, name })}
-                onClick={() => {
-                  const next = [...blocks, m];
-                  onSet(sum(next), next);
-                }}
+                onClick={() => onAppendBlock(m)}
               >
                 +{m}
               </button>
@@ -119,10 +126,7 @@ export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
                       focusRing,
                     )}
                     aria-label={t('today.removeBlock', { minutes: m, name })}
-                    onClick={() => {
-                      const next = blocks.filter((_, j) => j !== i);
-                      onSet(sum(next), next);
-                    }}
+                    onClick={() => onRemoveBlock(i)}
                   >
                     {t('today.blockChip', { minutes: m })}
                     <X aria-hidden="true" className="size-4" />
@@ -141,7 +145,7 @@ export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
               type="button"
               className={stepBtn}
               aria-label={t('today.hoursDecrease', { name })}
-              onClick={() => onSet(Math.max(0, (entry ? value : DEFAULT_SLEEP_HOURS) - HOUR_STEP))}
+              onClick={() => onAdjust(-HOUR_STEP, { min: 0, from: DEFAULT_SLEEP_HOURS })}
             >
               <Minus aria-hidden="true" className="size-5" />
             </button>
@@ -152,9 +156,7 @@ export function HabitRow({ habit, entry, onSet }: HabitRowProps) {
               type="button"
               className={stepBtn}
               aria-label={t('today.hoursIncrease', { name })}
-              onClick={() =>
-                onSet(Math.min(MAX_HOURS, (entry ? value : DEFAULT_SLEEP_HOURS) + HOUR_STEP))
-              }
+              onClick={() => onAdjust(HOUR_STEP, { max: MAX_HOURS, from: DEFAULT_SLEEP_HOURS })}
             >
               <Plus aria-hidden="true" className="size-5" />
             </button>
