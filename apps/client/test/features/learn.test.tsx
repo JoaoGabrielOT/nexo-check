@@ -45,6 +45,12 @@ describe('Aprender', () => {
     expect(screen.getAllByText('Rascunho').length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Referências' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Avisos' })).toBeVisible();
+    expect(screen.getByText(/não substitui acompanhamento/i)).toBeVisible();
+  });
+
+  it('links do guia têm área de toque de 44 px', () => {
+    render(<LearnPage />, { wrapper: MemoryRouter });
+    expect(screen.getByRole('link', { name: 'Pausas ativas' })).toHaveClass('min-h-11');
   });
 });
 

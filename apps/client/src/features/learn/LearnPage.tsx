@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { listMarkdown } from '@nexo/shared';
+import { getMarkdown, listMarkdown } from '@nexo/shared';
 import { Alert, Card } from '@nexo/ui';
 import { MarkdownView } from '../../components/MarkdownView';
 import { DraftBadge } from './DraftBadge';
@@ -24,9 +24,10 @@ export function LearnPage() {
   const bySlug = (slug: string) => docs.find((d) => d.slug === slug);
   const mechanisms = MECHANISMS.map(bySlug).filter((d) => d !== undefined);
   const evidence = bySlug('evidencias');
-  const caveat = bySlug('ressalva');
+  // Conteúdo obrigatório: getMarkdown lança se o arquivo sumir, em vez de omitir a seção.
+  const caveat = getMarkdown('aprender/ressalva.md');
   const references = bySlug('referencias');
-  const notices = listMarkdown('avisos')[0];
+  const notices = getMarkdown('avisos/avisos.md');
   const guide = listMarkdown('guia');
 
   return (
@@ -61,14 +62,12 @@ export function LearnPage() {
         </div>
       </section>
 
-      {caveat && (
-        <Alert aria-labelledby="learn-caveat">
-          <h2 id="learn-caveat" className="mb-2 text-xl font-extrabold">
-            {caveat.meta.title}
-          </h2>
-          <MarkdownView body={caveat.body} />
-        </Alert>
-      )}
+      <Alert aria-labelledby="learn-caveat">
+        <h2 id="learn-caveat" className="mb-2 text-xl font-extrabold">
+          {caveat.meta.title}
+        </h2>
+        <MarkdownView body={caveat.body} />
+      </Alert>
 
       <section aria-labelledby="learn-guide">
         <h2 id="learn-guide" className={h2}>
@@ -80,7 +79,7 @@ export function LearnPage() {
               <Card className="h-full">
                 <Link
                   to={`/aprender/guia/${g.slug}`}
-                  className="font-extrabold underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl"
+                  className="inline-flex min-h-11 items-center font-extrabold underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl"
                 >
                   {g.meta.title}
                 </Link>
@@ -101,14 +100,12 @@ export function LearnPage() {
         </section>
       )}
 
-      {notices && (
-        <section aria-labelledby="learn-notices">
-          <h2 id="learn-notices" className={h2}>
-            {t('learn.notices')}
-          </h2>
-          <MarkdownView body={notices.body} className="text-sm" />
-        </section>
-      )}
+      <section aria-labelledby="learn-notices">
+        <h2 id="learn-notices" className={h2}>
+          {t('learn.notices')}
+        </h2>
+        <MarkdownView body={notices.body} className="text-sm" />
+      </section>
     </div>
   );
 }
