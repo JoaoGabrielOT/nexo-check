@@ -17,7 +17,8 @@ export function getDaySuggestion({
   total,
 }: DaySuggestionState): string {
   if (total > 0 && done >= total) return 'today.suggestion.allDone';
+  // Sem meta de movimento (hábito inativo ou alvo 0) ou meta já cumprida: não cobra caminhada.
+  if (movementTarget <= 0 || movementMinutes >= movementTarget) return 'today.suggestion.recover';
   if (movementMinutes < WALK_MINUTES) return 'today.suggestion.walk10';
-  if (movementMinutes < movementTarget) return 'today.suggestion.keepGoing';
-  return 'today.suggestion.recover';
+  return 'today.suggestion.keepGoing';
 }

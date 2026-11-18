@@ -12,6 +12,7 @@ import {
   getEntriesForDate,
   getHabits,
   saveDailyLog,
+  setEntry,
   updateSettings,
 } from '../../src/db';
 import { mediaControl } from '../setup';
@@ -59,6 +60,18 @@ describe('getDaySuggestion', () => {
 
   it('movimento cumprido, outros hábitos pendentes: recuperar', () => {
     expect(getDaySuggestion({ ...base, movementMinutes: 30, done: 4 })).toBe(
+      'today.suggestion.recover',
+    );
+  });
+
+  it('meta de movimento menor que 10 min e cumprida: recuperar, não caminhada', () => {
+    expect(getDaySuggestion({ ...base, movementTarget: 5, movementMinutes: 5, done: 2 })).toBe(
+      'today.suggestion.recover',
+    );
+  });
+
+  it('sem meta de movimento (inativo ou alvo 0): não sugere caminhada', () => {
+    expect(getDaySuggestion({ ...base, movementTarget: 0, movementMinutes: 0, done: 1 })).toBe(
       'today.suggestion.recover',
     );
   });
@@ -135,6 +148,24 @@ describe('Hoje redesenhada', () => {
     await waitFor(() => expect(live).toHaveTextContent('Pausas ativas: 1 de 6'), {
       timeout: 2000,
     });
+  });
+
+  it('atualização de dados sem toque não repete o anúncio', async () => {
+    const user = userEvent.setup();
+    renderToday();
+    await user.click(await screen.findByRole('button', { name: 'Adicionar uma pausa' }));
+    const live = screen.getByTestId('today-live');
+    await waitFor(() => expect(live).toHaveTextContent('Pausas ativas: 1 de 6'), {
+      timeout: 2000,
+    });
+    // Mudança vinda de fora (outra aba, sincronização): a tela atualiza, mas não anuncia.
+    const breaks = (await getHabits()).find((h) => h.key === 'active_breaks')!;
+    await setEntry(breaks, DAY, 3);
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Pausas ativas' })).toHaveTextContent('3/6'),
+    );
+    await new Promise((r) => setTimeout(r, 800));
+    expect(live).toHaveTextContent('Pausas ativas: 1 de 6');
   });
 
   it('sem tela larga, não mostra o resumo lateral', async () => {

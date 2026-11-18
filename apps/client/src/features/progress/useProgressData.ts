@@ -23,6 +23,11 @@ export function rangeDates(range: ProgressRange, today: string): string[] {
   return lastNDateKeys(today, Number(today.slice(8, 10)));
 }
 
+/** Dias com algum minuto de movimento (entrada do hábito movement com valor > 0). */
+export function countMovementDays(days: ProgressDay[]): number {
+  return days.filter((d) => d.movementMinutes > 0).length;
+}
+
 export function useProgressData(range: ProgressRange): {
   days: ProgressDay[];
   streak: { current: number; best: number };

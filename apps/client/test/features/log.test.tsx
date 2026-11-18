@@ -13,9 +13,11 @@ vi.mock('@nexo/ui', async (importOriginal) => ({
 }));
 
 const NOTE = 'Observação (fica só no seu aparelho)';
+// As pílulas se chamam "N — palavra"; os testes de comportamento casam só o número.
+const radioName = (n: number) => new RegExp(`^${n} — `);
 const group = (name: string) => screen.findByRole('radiogroup', { name });
 const pick = async (user: ReturnType<typeof userEvent.setup>, name: string, n: number) =>
-  user.click(within(await group(name)).getByRole('radio', { name: String(n) }));
+  user.click(within(await group(name)).getByRole('radio', { name: radioName(n) }));
 const save = () => screen.getByRole('button', { name: 'Salvar registro' });
 
 beforeEach(async () => {
@@ -61,13 +63,13 @@ describe('Registro do dia', () => {
     render(<LogPage />);
     const stress = await group('Estresse percebido');
     await waitFor(() =>
-      expect(within(stress).getByRole('radio', { name: '2' })).toHaveAttribute(
+      expect(within(stress).getByRole('radio', { name: radioName(2) })).toHaveAttribute(
         'aria-checked',
         'true',
       ),
     );
     expect(
-      within(await group('Qualidade do sono')).getByRole('radio', { name: '5' }),
+      within(await group('Qualidade do sono')).getByRole('radio', { name: radioName(5) }),
     ).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByLabelText(NOTE)).toHaveValue('dia tranquilo');
   });

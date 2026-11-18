@@ -215,6 +215,12 @@ describe('ScalePills', () => {
     expect(screen.getByRole('radio', { name: 'Médio (3 de 5)' })).toBeInTheDocument();
   });
 
+  it('hideLabel esconde o rótulo só visualmente e mantém o nome do grupo', () => {
+    render(<ScalePills label="Energia" words={words} value={null} onChange={() => {}} hideLabel />);
+    expect(screen.getByRole('radiogroup', { name: 'Energia' })).toBeInTheDocument();
+    expect(screen.getByText('Energia')).toHaveClass('sr-only');
+  });
+
   it('clicar seleciona a opção', async () => {
     const user = userEvent.setup();
     render(<Harness />);

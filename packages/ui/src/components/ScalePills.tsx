@@ -10,6 +10,8 @@ export interface ScalePillsProps {
   words: [string, string, string, string, string];
   /** Nome acessível de cada opção; o app passa o formato do pt-BR.json. Padrão: "3 — Médio". */
   formatLabel?: (n: ScaleValue, word: string) => string;
+  /** Esconde o rótulo só visualmente (quando o contêiner já mostra o nome); o grupo segue nomeado. */
+  hideLabel?: boolean;
   className?: string;
 }
 
@@ -36,6 +38,7 @@ export function ScalePills({
   onChange,
   words,
   formatLabel = defaultLabel,
+  hideLabel = false,
   className,
 }: ScalePillsProps) {
   const labelId = useId();
@@ -60,7 +63,7 @@ export function ScalePills({
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      <span id={labelId} className="font-extrabold">
+      <span id={labelId} className={hideLabel ? 'sr-only' : 'font-extrabold'}>
         {label}
       </span>
       <div role="radiogroup" aria-labelledby={labelId} className="flex max-w-xl items-end gap-2">

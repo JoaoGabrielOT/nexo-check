@@ -27,7 +27,7 @@ const WIDE_QUERY = '(min-width: 1280px)';
 const ANNOUNCE_DELAY_MS = 500;
 
 /** "Terça, 17 de novembro" a partir de `YYYY-MM-DD` (data local). */
-function formatLongDate(key: string, t: TFunction): string {
+export function formatLongDate(key: string, t: TFunction): string {
   const [y = 1970, m = 1, d = 1] = key.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' }).replace(/-feira$/, '');
@@ -76,6 +76,7 @@ export function TodayPage() {
   }, [today, t]);
 
   // Depois de uma mudança feita pela pessoa, anuncia o novo valor (com atraso, para agrupar toques).
+  // Depois de anunciar, esquece o toque: atualizações vindas de fora não repetem o anúncio.
   useEffect(() => {
     const habit = habits?.find((h) => h.id === touched.current);
     if (!habit || !entries) return;
@@ -84,7 +85,10 @@ export function TodayPage() {
       entries.find((e) => e.habitId === habit.id),
       t,
     );
-    const timer = setTimeout(() => setAnnouncement(message), ANNOUNCE_DELAY_MS);
+    const timer = setTimeout(() => {
+      setAnnouncement(message);
+      if (touched.current === habit.id) touched.current = null;
+    }, ANNOUNCE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [habits, entries, t]);
 
