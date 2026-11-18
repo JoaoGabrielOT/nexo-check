@@ -1,4 +1,4 @@
-import { CONSENT_VERSION, isParticipantCode, normalizeCode, registerRequest } from '@nexo/shared';
+import { CONSENT_VERSION, registerRequest } from '@nexo/shared';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { PrismaClient } from '../db';
@@ -24,12 +24,7 @@ export async function participantRoutes(
     { config: { rateLimit: { max: opts.registerLimitMax, timeWindow: '1 hour' } } },
     async (req, reply) => {
       const body = registerRequest.parse(req.body);
-      const code = normalizeCode(body.code);
-      if (!isParticipantCode(code)) {
-        return reply
-          .status(400)
-          .send({ error: 'invalid_request', message: 'Código de participante inválido.' });
-      }
+      const code = body.code;
       const version = consentVersion.parse(body.consentVersion);
       if (await prisma.participant.findUnique({ where: { code }, select: { id: true } })) {
         return reply
@@ -55,16 +50,25 @@ export async function participantRoutes(
   );
 
   app.delete('/participants/me', { preHandler: auth }, async (req, reply) => {
-    await prisma.participant.delete({ where: { id: participantId(req) } });
+    // deleteMany: uma segunda requisição concorrente não deve virar 500 (idempotente: 204).
+    await prisma.participant.deleteMany({ where: { id: participantId(req) } });
     return reply.status(204).send();
   });
 
-  app.patch('/participants/me/consent', { preHandler: auth }, async (req) => {
+  app.patch('/participants/me/consent', { preHandler: auth }, async (req, reply) => {
     const { consentVersion: version } = consentRequest.parse(req.body);
-    const row = await prisma.participant.update({
-      where: { id: participantId(req) },
-      data: { consentVersion: version, consentAt: new Date() },
+    const id = participantId(req);
+    const consentAt = new Date();
+    const { count } = await prisma.participant.updateMany({
+      where: { id },
+      data: { consentVersion: version, consentAt },
     });
-    return { consentVersion: row.consentVersion, consentAt: row.consentAt.toISOString() };
+    // Apagado entre a autenticação e a atualização.
+    if (count === 0) {
+      return reply
+        .status(401)
+        .send({ error: 'unauthorized', message: 'Código ou chave do participante inválidos.' });
+    }
+    return { consentVersion: version, consentAt: consentAt.toISOString() };
   });
 }

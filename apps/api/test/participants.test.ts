@@ -1,3 +1,4 @@
+import { generateRecoveryKey } from '@nexo/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app';
@@ -6,7 +7,7 @@ import { requireParticipant } from '../src/plugins/participant-auth';
 import { makeTestApp, testEnv } from './helpers';
 
 const CODE = 'NEXO-AB23';
-const KEY = 'chave-de-recuperacao-24ch';
+const KEY = generateRecoveryKey();
 
 // IP novo por chamada: o limite de 10/h por IP é compartilhado entre os testes do arquivo.
 let nextIp = 0;
@@ -58,7 +59,7 @@ describe('participantes', () => {
     await register(app, { code: CODE, key: KEY, consentVersion: 1 });
     const res = await register(app, {
       code: CODE,
-      key: 'outra-chave-qualquer-xx',
+      key: generateRecoveryKey(),
       consentVersion: 1,
     });
     expect(res.statusCode).toBe(409);
@@ -71,6 +72,9 @@ describe('participantes', () => {
       { code: CODE, key: KEY, consentVersion: 0 },
       { code: CODE, key: KEY, consentVersion: 2 },
       { code: CODE, key: '', consentVersion: 1 },
+      { code: CODE, key: 'a', consentVersion: 1 },
+      { code: CODE, key: `${KEY}A`, consentVersion: 1 },
+      { code: CODE, key: `${KEY.slice(0, 23)}U`, consentVersion: 1 },
       { code: CODE },
     ]) {
       const res = await register(app, body);
@@ -78,6 +82,48 @@ describe('participantes', () => {
       expect(res.json()).toMatchObject({ error: 'invalid_request' });
     }
     expect(await prisma.participant.count()).toBe(0);
+  });
+
+  it('chave em minúsculas é normalizada no registro e na autenticação', async () => {
+    const res = await register(app, {
+      code: CODE,
+      key: ` ${KEY.toLowerCase()} `,
+      consentVersion: 1,
+    });
+    expect(res.statusCode).toBe(201);
+    for (const key of [KEY, KEY.toLowerCase()]) {
+      const me = await app.inject({
+        method: 'GET',
+        url: '/v1/_me',
+        headers: authHeaders(CODE, key),
+      });
+      expect(me.statusCode).toBe(200);
+    }
+  });
+
+  it('hash armazenado malformado dá 401, não 500', async () => {
+    await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+    for (const keyHash of ['lixo', 'scrypt$x$y$z$a$b', 'scrypt$3$8$1$AAAA$AAAA']) {
+      await prisma.participant.update({ where: { code: CODE }, data: { keyHash } });
+      const res = await app.inject({ method: 'GET', url: '/v1/_me', headers: authHeaders() });
+      expect(res.statusCode).toBe(401);
+    }
+  });
+
+  it('registros concorrentes do mesmo código: um 201 e um 409', async () => {
+    const results = await Promise.all([
+      register(app, { code: CODE, key: KEY, consentVersion: 1 }),
+      register(app, { code: CODE, key: KEY, consentVersion: 1 }),
+    ]);
+    expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+  });
+
+  it('segundo DELETE com as mesmas credenciais dá 401', async () => {
+    await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+    const del = () =>
+      app.inject({ method: 'DELETE', url: '/v1/participants/me', headers: authHeaders() });
+    expect((await del()).statusCode).toBe(204);
+    expect((await del()).statusCode).toBe(401);
   });
 
   it('autentica com código e chave certos', async () => {

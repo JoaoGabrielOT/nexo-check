@@ -32,3 +32,17 @@ describe('codes', () => {
     expect(normalizeCode(' ab3cde ')).toBe('AB3CDE');
   });
 });
+
+describe('chave de recuperação', () => {
+  it('aceita a chave gerada e rejeita tamanhos e caracteres fora do alfabeto', async () => {
+    const { generateRecoveryKey, isRecoveryKey, normalizeRecoveryKey } =
+      await import('../src/codes');
+    const key = generateRecoveryKey();
+    expect(isRecoveryKey(key)).toBe(true);
+    expect(isRecoveryKey(key.slice(1))).toBe(false);
+    expect(isRecoveryKey(`${key}A`)).toBe(false);
+    expect(isRecoveryKey(`${key.slice(0, 23)}U`)).toBe(false);
+    expect(isRecoveryKey(key.toLowerCase())).toBe(false);
+    expect(normalizeRecoveryKey(` ${key.toLowerCase()} `)).toBe(key);
+  });
+});

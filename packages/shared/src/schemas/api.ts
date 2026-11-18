@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { normalizeCode } from '../codes';
+import { isParticipantCode, isRecoveryKey, normalizeCode, normalizeRecoveryKey } from '../codes';
 import { syncChangeSchema } from './entities';
 import { answers } from './questionnaire';
 
@@ -11,9 +11,15 @@ const sessionCode = z
   .transform(normalizeCode)
   .pipe(z.string().regex(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/));
 
+/** Chave de recuperação: 24 caracteres Crockford base32 (aceita minúsculas e espaços nas pontas). */
+export const recoveryKeySchema = z
+  .string()
+  .transform(normalizeRecoveryKey)
+  .pipe(z.string().refine(isRecoveryKey, 'Chave de recuperação inválida.'));
+
 export const registerRequest = z.object({
-  code: z.string().min(1),
-  key: z.string().min(1).max(128),
+  code: z.string().transform(normalizeCode).pipe(z.string().refine(isParticipantCode)),
+  key: recoveryKeySchema,
   consentVersion: z.number().int().min(1),
 });
 

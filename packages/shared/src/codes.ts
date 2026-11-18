@@ -26,6 +26,11 @@ export const generateParticipantCode = (rand?: () => number): string =>
 
 export const generateRecoveryKey = (rand?: () => number): string => pick(CROCKFORD, 24, rand);
 
+const RECOVERY_KEY_RE = /^[0-9A-HJKMNP-TV-Z]{24}$/;
+export const isRecoveryKey = (s: string): boolean => RECOVERY_KEY_RE.test(s);
+/** Trim + maiúsculas (a chave é comparada exatamente como gerada). */
+export const normalizeRecoveryKey = (s: string): string => s.trim().toUpperCase();
+
 export const generateSessionCode = (rand?: () => number): string => pick(SESSION_ALPHABET, 6, rand);
 
 export const isParticipantCode = (s: string): boolean => PARTICIPANT_RE.test(s);
