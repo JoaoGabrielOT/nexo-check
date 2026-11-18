@@ -1,10 +1,12 @@
 import { db } from '../db';
+import { notifyLocalWrite } from '../localWrites';
 import type { LocalQuestionnaireResponse } from '../schemas';
 
 export async function saveQuestionnaireResponse(
   r: Omit<LocalQuestionnaireResponse, 'syncedAt'>,
 ): Promise<void> {
   await db.questionnaireResponses.put({ ...r, syncedAt: null });
+  notifyLocalWrite();
 }
 
 export function getQuestionnaireResponses(

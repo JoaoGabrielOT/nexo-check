@@ -13,8 +13,11 @@ import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import { CONSENT_VERSION } from '@nexo/shared';
 import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
+import type { AppSettings } from '../db/schemas';
 import { useReminderScheduling } from '../features/settings/RemindersSection';
+import { startSyncLoop } from '../sync/engine';
 import { PwaUpdateToast } from './PwaUpdateToast';
+import { SyncStatusPill } from './SyncStatusPill';
 import { useMediaQuery } from './useMediaQuery';
 
 const NAV_ITEMS: {
@@ -31,6 +34,18 @@ const NAV_ITEMS: {
 
 // /checkin precisa abrir direto pelo QR da oficina; /admin é independente do app.
 const EXEMPT_PREFIXES = ['/checkin', '/admin'];
+
+/** Para onde o app precisa redirecionar com estas configurações (ou `null`). */
+function redirectFor(settings: AppSettings, pathname: string): string | null {
+  if (pathname.startsWith('/onboarding') || EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return null;
+  }
+  if (!settings.onboardingDone) return '/onboarding';
+  if (settings.consent?.granted && settings.consent.version < CONSENT_VERSION) {
+    return '/onboarding/consentimento';
+  }
+  return null;
+}
 
 const focusRing =
   'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl';
@@ -93,6 +108,22 @@ export function Layout() {
   const { pathname } = useLocation();
   const settings = useLiveQuery(getSettings, []);
   useReminderScheduling(settings?.reminders);
+  useEffect(() => startSyncLoop(), []);
+  const target = settings ? redirectFor(settings, pathname) : null;
+  const [confirmed, setConfirmed] = useState<string | null>(null);
+  // A consulta ao vivo pode estar um instante atrasada logo após gravar (ex.: fim do onboarding):
+  // só redireciona depois de reler as configurações.
+  useEffect(() => {
+    if (!target) return;
+    let alive = true;
+    void getSettings().then((fresh) => {
+      if (alive && redirectFor(fresh, pathname) === target) setConfirmed(target);
+    });
+    return () => {
+      alive = false;
+      setConfirmed(null);
+    };
+  }, [target, pathname]);
   const headerRef = useRef<HTMLElement>(null);
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const inOnboarding = pathname.startsWith('/onboarding');
@@ -101,12 +132,7 @@ export function Layout() {
   const scrolled = useContentUnderHeader(sentinel, headerRef, wide && !inOnboarding);
   // Sem configurações carregadas não renderiza nada, para não piscar um redirecionamento errado.
   if (!settings) return null;
-  if (!inOnboarding && !EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) {
-    if (!settings.onboardingDone) return <Navigate to="/onboarding" replace />;
-    if (settings.consent?.granted && settings.consent.version < CONSENT_VERSION) {
-      return <Navigate to="/onboarding/consentimento" replace />;
-    }
-  }
+  if (target) return confirmed === target ? <Navigate to={target} replace /> : null;
   const withNav = !inOnboarding;
   return (
     <>
@@ -131,19 +157,22 @@ export function Layout() {
         )}
       >
         <span className="text-lg font-extrabold tracking-[-0.03em]">{t('brand')}</span>
-        <NavLink
-          to="/config"
-          aria-label={t('nav.settings')}
-          className={({ isActive }) =>
-            cn(
-              'flex min-h-11 min-w-11 items-center justify-center rounded-full text-text transition-colors hover:bg-text/8',
-              isActive && 'bg-text/10',
-              focusRing,
-            )
-          }
-        >
-          <Settings aria-hidden="true" className="size-6" />
-        </NavLink>
+        <div className="flex items-center gap-1">
+          <SyncStatusPill className="lg:hidden" />
+          <NavLink
+            to="/config"
+            aria-label={t('nav.settings')}
+            className={({ isActive }) =>
+              cn(
+                'flex min-h-11 min-w-11 items-center justify-center rounded-full text-text transition-colors hover:bg-text/8',
+                isActive && 'bg-text/10',
+                focusRing,
+              )
+            }
+          >
+            <Settings aria-hidden="true" className="size-6" />
+          </NavLink>
+        </div>
       </header>
       {withNav && (
         <nav
@@ -187,6 +216,7 @@ export function Layout() {
               )}
             </NavLink>
           ))}
+          <SyncStatusPill className="hidden self-start lg:mt-auto lg:mb-6 lg:ml-4 lg:inline-flex" />
         </nav>
       )}
       <main

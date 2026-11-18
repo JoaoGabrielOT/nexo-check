@@ -293,7 +293,37 @@
       "now": "Sincronizar agora",
       "restore": "Restaurar em outro aparelho",
       "revoke": "Revogar consentimento",
-      "soon": "Estes botões serão ativados em uma próxima versão."
+      "needConsent": "Para sincronizar, aceite o compartilhamento de dados na tela de consentimento.",
+      "lastSync": "Última sincronização: {{when}}",
+      "never": "Ainda não sincronizado.",
+      "done": "Sincronizado.",
+      "failed": "Não foi possível sincronizar.",
+      "offlineNow": "Sem conexão. Tentaremos de novo quando voltar.",
+      "errors": {
+        "unauthorized": "O servidor não reconheceu o código e a chave deste aparelho. Use \"Restaurar em outro aparelho\" com o código e a chave.",
+        "rejected": "O servidor recusou parte dos dados. Eles continuam salvos neste aparelho.",
+        "clock_skew": "O relógio do aparelho parece errado. Ajuste a data e a hora e tente de novo.",
+        "network": "Não foi possível falar com o servidor. Tente de novo mais tarde.",
+        "server": "O servidor está indisponível no momento. Tente de novo mais tarde."
+      },
+      "restoreTitle": "Restaurar em outro aparelho",
+      "restoreBody": "Digite o código e a chave de recuperação do aparelho anterior. Os registros enviados ao servidor serão baixados para cá, sem as anotações privadas.",
+      "restoreCode": "Código de participante",
+      "restoreKey": "Chave de recuperação",
+      "restoreConfirm": "Restaurar",
+      "restoring": "Restaurando…",
+      "restored": "Dados restaurados.",
+      "restoreInvalid": "Código ou chave incorretos.",
+      "restoreFailed": "Não foi possível restaurar agora. Confira a conexão e tente de novo.",
+      "revokeTitle": "Revogar consentimento?",
+      "revokeBody": "O aplicativo deixa de enviar dados deste aparelho. Seus registros locais continuam aqui.",
+      "revokeAsk": "Os dados que já foram enviados ao servidor podem ser mantidos ou apagados agora.",
+      "revokeKeep": "Revogar e manter no servidor",
+      "revokeDelete": "Revogar e apagar no servidor",
+      "revokeOnly": "Revogar consentimento",
+      "revoked": "Consentimento revogado.",
+      "revokedDeleteFailed": "Consentimento revogado, mas não foi possível apagar os dados no servidor. Tente de novo mais tarde, com internet.",
+      "cancel": "Cancelar"
     },
     "data": {
       "title": "Dados",
@@ -315,7 +345,6 @@
       "remoteFailTitle": "Não foi possível apagar no servidor. Apagar só neste aparelho?",
       "remoteFailBody": "Os dados no servidor continuam lá. Você pode tentar de novo mais tarde, com internet.",
       "wipeLocalOnly": "Apagar só neste aparelho",
-      "syncUnavailable": "sincronização indisponível",
       "cancel": "Cancelar"
     },
     "about": {
@@ -444,5 +473,14 @@
     "consentText": "A presença só conta com a participação na pesquisa. Sem o seu consentimento, nada é registrado nem enviado.",
     "consentCta": "Ir para o consentimento",
     "saveFailed": "Não foi possível salvar o check-in. Tente de novo."
+  },
+  "sync": {
+    "status": {
+      "synced": "Sincronizado",
+      "syncing": "Sincronizando…",
+      "pending": "Pendente: {{count}}",
+      "offline": "Offline",
+      "error": "Erro"
+    }
   }
 }

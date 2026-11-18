@@ -16,6 +16,7 @@ import { getQuestionnaireResponses, saveQuestionnaireResponse } from '../../db';
 import { newId } from '../../db/ids';
 import { now } from '../../db/clock';
 import type { LocalQuestionnaireResponse } from '../../db/schemas';
+import { requestSync } from '../../sync/engine';
 import { DraftBadge } from '../learn/DraftBadge';
 import { QuestionField } from './QuestionField';
 import {
@@ -213,6 +214,7 @@ function Flow({
     };
     try {
       await saveQuestionnaireResponse(response);
+      void requestSync().catch(() => undefined);
       onSaved({ ...response, syncedAt: null });
     } catch {
       saving.current = false;

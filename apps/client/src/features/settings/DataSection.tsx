@@ -17,10 +17,11 @@ import { BackupError, exportAll, getSettings, importAll, wipeLocal } from '../..
 import { now } from '../../db/clock';
 import { backupFileSchema } from '../../db/schemas';
 import { downloadFile, pickFile } from '../../platform/files';
+import { deleteRemoteParticipant } from '../../sync/engine';
 import { buildRecordsCsv } from './recordsCsv';
 
 export interface DataSectionProps {
-  /** Apaga os dados do participante no servidor; a Task 20 injeta a chamada real. */
+  /** Apaga os dados do participante no servidor; por padrão usa a chamada real do motor. */
   deleteRemote?: () => Promise<void>;
 }
 
@@ -35,11 +36,7 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
   const [error, setError] = useState<string | null>(null);
   const registered = settings?.participant?.registered === true;
 
-  const remove: () => Promise<void> =
-    deleteRemote ??
-    (async () => {
-      throw new Error(t('settings.data.syncUnavailable'));
-    });
+  const remove: () => Promise<void> = deleteRemote ?? deleteRemoteParticipant;
 
   const stamp = () => toLocalDateKey(now());
   const report = () => toast(t('errors.generic'));

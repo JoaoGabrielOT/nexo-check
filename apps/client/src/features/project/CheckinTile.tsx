@@ -6,6 +6,7 @@ import { normalizeCode } from '@nexo/shared';
 import { Button, Tile, buttonVariants, cn } from '@nexo/ui';
 import { DuplicateCheckinError, addCheckin, db, getSettings } from '../../db';
 import type { LocalCheckin } from '../../db/schemas';
+import { requestSync } from '../../sync/engine';
 import { SESSION_CODE_PATTERN, SESSION_CODE_RE } from './helpers';
 
 const clean = (s: string) =>
@@ -87,6 +88,7 @@ export function CheckinTile({ initialCode = '' }: { initialCode?: string }) {
         return;
       }
       await addCheckin(normalized);
+      void requestSync().catch(() => undefined);
       setCode('');
       setSaved(true);
     } catch (e) {

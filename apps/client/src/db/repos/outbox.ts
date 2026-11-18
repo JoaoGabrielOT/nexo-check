@@ -1,6 +1,7 @@
 import { CONSENT_VERSION, stripPrivateFields } from '@nexo/shared';
 import type { EntityPayload, SyncChange, SyncEntityName } from '@nexo/shared';
 import { db } from '../db';
+import { notifyLocalWrite } from '../localWrites';
 
 /** Deve rodar dentro de uma transação que inclua `outbox` e `settings`. */
 export async function enqueueIfConsented<T extends SyncEntityName>(
@@ -19,6 +20,7 @@ export async function enqueueIfConsented<T extends SyncEntityName>(
     deletedAt: safe.deletedAt,
   } as SyncChange;
   await db.outbox.add({ entity, entityId: safe.id, change });
+  notifyLocalWrite();
 }
 
 export async function peekOutbox(limit: number): Promise<{ seq: number; change: SyncChange }[]> {

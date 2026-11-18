@@ -44,6 +44,8 @@ export const appSettingsSchema = z.object({
   syncCursor: z.string().nullable(),
   progressiveCheckedOn: z.string().optional(),
   lastSyncAt: iso.nullable(),
+  /** Versão do consentimento que o servidor já conhece. */
+  consentSyncedVersion: z.number().int().optional(),
   unlockedAchievements: z.array(z.object({ id: achievementId, at: iso })),
 });
 
@@ -55,6 +57,8 @@ export const localQuestionnaireResponseSchema = z.object({
   score: z.number().nullable(),
   submittedAt: iso,
   syncedAt: iso.nullable(),
+  /** O servidor já tinha uma resposta com este id (409): não reenviar. */
+  syncConflict: z.boolean().optional(),
 });
 
 export const localCheckinSchema = z.object({

@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { now } from '../clock';
 import { newId } from '../ids';
+import { notifyLocalWrite } from '../localWrites';
 import type { LocalCheckin } from '../schemas';
 
 /** O código já foi registrado neste aparelho. */
@@ -15,7 +16,7 @@ export class DuplicateCheckinError extends Error {
 
 /** Grava um check-in pendente; o mesmo código nunca entra duas vezes (checado dentro da transação). */
 export async function addCheckin(sessionCode: string): Promise<LocalCheckin> {
-  return db.transaction('rw', db.checkins, async () => {
+  const checkin = await db.transaction('rw', db.checkins, async () => {
     const existing = await db.checkins.filter((c) => c.sessionCode === sessionCode).first();
     if (existing) throw new DuplicateCheckinError(sessionCode);
     const checkin: LocalCheckin = {
@@ -31,6 +32,8 @@ export async function addCheckin(sessionCode: string): Promise<LocalCheckin> {
     await db.checkins.put(checkin);
     return checkin;
   });
+  notifyLocalWrite();
+  return checkin;
 }
 
 export async function updateCheckinStatus(id: string, patch: Partial<LocalCheckin>): Promise<void> {
