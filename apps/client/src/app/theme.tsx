@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -54,13 +55,12 @@ function writeThemeMirror(theme: Theme) {
   }
 }
 
-// Cada escolha recebe um número; só o resultado da gravação mais recente conta.
-let lastWriteId = 0;
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [followed, setFollowed] = useState<Theme>(() => readThemeMirror() ?? 'system');
   // Escolha da pessoa ainda não confirmada em `settings`: enquanto existir, vale no lugar de `stored`.
   const [pending, setPending] = useState<{ value: Theme; id: number } | null>(null);
+  // Cada escolha recebe um número; só o resultado da gravação mais recente conta (lido só em callbacks).
+  const lastWriteId = useRef(0);
   // `settings.theme` é a fonte da verdade: importar um backup ou apagar tudo muda o tema também.
   const stored = useLiveQuery(getSettings, [])?.theme;
   // Ajuste durante a renderização (sem efeito): `followed` acompanha `stored` quando ele muda.
@@ -76,17 +76,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const setTheme = useCallback((next: Theme) => {
-    const id = ++lastWriteId;
+    const id = ++lastWriteId.current;
     setPending({ value: next, id });
     const settle = (resync: boolean) => {
-      if (id !== lastWriteId) return; // uma escolha mais nova já assumiu
+      if (id !== lastWriteId.current) return; // uma escolha mais nova já assumiu
       setPending(null);
-      if (!resync) return;
+      if (!resync) {
+        // Gravou: `next` já é o salvo, sem voltar ao valor antigo até a consulta reemitir.
+        setFollowed(next);
+        return;
+      }
       toast(i18n.t('errors.generic'));
       // Não gravou: volta ao que está salvo; se nem isso for possível, fica no último valor conhecido.
       getSettings()
         .then((s) => {
-          if (id === lastWriteId) setFollowed(s.theme);
+          if (id === lastWriteId.current) setFollowed(s.theme);
         })
         .catch(() => undefined);
     };

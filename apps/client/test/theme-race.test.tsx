@@ -12,6 +12,7 @@ interface Write {
 const gate = vi.hoisted(() => ({
   writes: [] as unknown[],
   getCalls: 0,
+  getDone: 0,
   failGet: false,
   toast: vi.fn(),
 }));
@@ -23,8 +24,12 @@ vi.mock('../src/db', async (orig) => {
     ...actual,
     getSettings: vi.fn(async () => {
       gate.getCalls++;
-      if (gate.failGet) throw new Error('leitura falhou');
-      return actual.getSettings();
+      try {
+        if (gate.failGet) throw new Error('leitura falhou');
+        return await actual.getSettings();
+      } finally {
+        gate.getDone++;
+      }
     }),
     // Gravação lenta: só conclui quando o teste manda (aplicar, ignorar ou falhar).
     updateSettings: vi.fn(
@@ -62,12 +67,16 @@ const putTheme = (theme: 'light' | 'dark' | 'system') =>
 const shown = () => screen.getByRole('status');
 const click = (name: string) => act(async () => screen.getByText(name).click());
 
-/** Grava no banco e espera a consulta ao vivo reler (a emissão chegou ao provider). */
+/**
+ * Grava no banco e espera a consulta ao vivo entregar o valor ao provider: a releitura precisa
+ * terminar e, depois dela, uma volta de macrotarefa dentro do act deixa o useLiveQuery renderizar.
+ */
 async function emit(theme: 'light' | 'dark' | 'system') {
-  const before = gate.getCalls;
+  const before = gate.getDone;
   await act(async () => {
     await putTheme(theme);
-    await waitFor(() => expect(gate.getCalls).toBeGreaterThan(before));
+    await waitFor(() => expect(gate.getDone).toBeGreaterThan(before));
+    await new Promise((r) => setTimeout(r, 0));
   });
 }
 
@@ -117,6 +126,51 @@ describe('corrida do tema', () => {
     expect(shown()).toHaveTextContent('light');
     expect(localStorage.getItem('nexo-theme')).toBe('light');
     expect((await db.settings.get('app'))?.value.theme).toBe('light');
+  });
+
+  it('(b2) a gravação antiga aplica enquanto a nova está pendente: segue na nova', async () => {
+    await putTheme('system');
+    mount();
+    await waitFor(() => expect(shown()).toHaveTextContent('system'));
+    await click('dark');
+    await click('light');
+    await act(async () => writes()[0]?.finish('apply'));
+    await waitFor(async () => expect((await db.settings.get('app'))?.value.theme).toBe('dark'));
+    await emit('dark');
+    expect(shown()).toHaveTextContent('light');
+    await act(async () => writes()[1]?.finish('apply'));
+    await waitFor(async () => expect((await db.settings.get('app'))?.value.theme).toBe('light'));
+    expect(shown()).toHaveTextContent('light');
+    expect(gate.toast).not.toHaveBeenCalled();
+  });
+
+  it('(b3) a gravação antiga falha enquanto a nova está pendente: sem aviso nem ressincronia', async () => {
+    await putTheme('system');
+    mount();
+    await waitFor(() => expect(shown()).toHaveTextContent('system'));
+    await click('dark');
+    await click('light');
+    const reads = gate.getCalls;
+    await act(async () => writes()[0]?.finish('fail'));
+    await act(async () => new Promise((r) => setTimeout(r, 0)));
+    expect(shown()).toHaveTextContent('light');
+    expect(gate.toast).not.toHaveBeenCalled();
+    expect(gate.getCalls).toBe(reads);
+    await act(async () => writes()[1]?.finish('apply'));
+    await waitFor(async () => expect((await db.settings.get('app'))?.value.theme).toBe('light'));
+    expect(shown()).toHaveTextContent('light');
+    expect(gate.toast).not.toHaveBeenCalled();
+  });
+
+  it('(d) sem piscar: confirmada a gravação, segue no novo valor antes de a consulta reemitir', async () => {
+    await putTheme('light');
+    mount();
+    await waitFor(() => expect(shown()).toHaveTextContent('light'));
+    await click('dark');
+    // 'skip' confirma sem tocar no banco: modela o intervalo até a consulta ao vivo reemitir.
+    await act(async () => writes()[0]?.finish('skip'));
+    expect(shown()).toHaveTextContent('dark');
+    expect(localStorage.getItem('nexo-theme')).toBe('dark');
   });
 
   it('(c) gravação e releitura falhando: limpa a pendência, avisa e aceita mudança externa', async () => {
