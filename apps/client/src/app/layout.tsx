@@ -1,5 +1,12 @@
 import { BookOpen, CalendarCheck, ClipboardList, Settings, Sprout, TrendingUp } from 'lucide-react';
-import { useEffect, useRef, useState, type ComponentType, type RefObject } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type RefObject,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
@@ -7,7 +14,6 @@ import { CONSENT_VERSION } from '@nexo/shared';
 import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
 import { PwaUpdateToast } from './PwaUpdateToast';
-import { useMediaQuery } from './useMediaQuery';
 
 const NAV_ITEMS: {
   to: string;
@@ -30,27 +36,50 @@ const focusRing =
 /**
  * `true` quando há conteúdo sob o cabeçalho, para ele ganhar fundo legível. Observa um sentinela de
  * 1 px no topo do main: com o cabeçalho sticky (no fluxo, antes do main), a área observada começa na
- * base dele, então qualquer rolagem já tira o sentinela. Com o cabeçalho fixed (menu lateral), a área
- * é a tela toda. Sem listener de scroll: funciona também com rolagem por âncora, teclado ou restauração.
+ * base dele (altura arredondada para baixo, para uma altura fracionária não esconder o sentinela no
+ * topo), então qualquer rolagem já tira o sentinela. Com o cabeçalho fixed (menu lateral), a área é
+ * a tela toda. A altura é medida de novo quando o cabeçalho muda de tamanho. Sem listener de scroll.
+ * Sem IntersectionObserver, fica `true`: o cabeçalho opaco é sempre legível.
  */
 function useContentUnderHeader(
   sentinel: HTMLElement | null,
   header: RefObject<HTMLElement | null>,
-  layoutKey: string,
 ): boolean {
+  const supported = typeof IntersectionObserver !== 'undefined';
   const [under, setUnder] = useState(false);
-  useEffect(() => {
+  const [top, setTop] = useState<number | null>(null);
+
+  // Medida antes da pintura, para o observador já nascer com a margem certa.
+  useLayoutEffect(() => {
     const el = header.current;
-    if (!sentinel || !el || typeof IntersectionObserver === 'undefined') return;
-    const top = getComputedStyle(el).position === 'fixed' ? 0 : el.offsetHeight;
+    if (!el) return;
+    const measure = () =>
+      setTop(
+        getComputedStyle(el).position === 'fixed'
+          ? 0
+          : Math.floor(el.getBoundingClientRect().height),
+      );
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+    const resize = new ResizeObserver(measure);
+    resize.observe(el);
+    return () => resize.disconnect();
+  }, [header, sentinel]);
+
+  useEffect(() => {
+    if (!sentinel || top === null || !supported) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setUnder(entry !== undefined && entry.intersectionRatio < 1),
-      { rootMargin: `-${top}px 0px 0px 0px`, threshold: 1 },
+      ([entry]) => setUnder(entry !== undefined && !entry.isIntersecting),
+      { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0 },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [sentinel, header, layoutKey]);
-  return under;
+  }, [sentinel, top, supported]);
+
+  return supported ? under : true;
 }
 
 // O fundo fica só no html (index.css). O Wallpaper é fixed z-0 e o conteúdo (header, nav e main)
@@ -65,10 +94,8 @@ export function Layout() {
   const settings = useLiveQuery(getSettings, []);
   const headerRef = useRef<HTMLElement>(null);
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
-  const wide = useMediaQuery('(min-width: 1024px)');
   const inOnboarding = pathname.startsWith('/onboarding');
-  // Recalcula a área observada quando o cabeçalho troca entre sticky e fixed.
-  const scrolled = useContentUnderHeader(sentinel, headerRef, `${wide}-${inOnboarding}`);
+  const scrolled = useContentUnderHeader(sentinel, headerRef);
   // Sem configurações carregadas não renderiza nada, para não piscar um redirecionamento errado.
   if (!settings) return null;
   if (!inOnboarding && !EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) {

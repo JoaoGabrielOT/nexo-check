@@ -87,7 +87,7 @@ export function BlockChips({
         <li key={`${i}-${minutes}`}>
           <TapButton
             className={cn(
-              'inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-semibold tabular-nums',
+              'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold tabular-nums',
               className,
             )}
             aria-label={t('today.removeBlock', { minutes, name })}

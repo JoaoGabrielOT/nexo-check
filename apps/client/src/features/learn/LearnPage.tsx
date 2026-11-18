@@ -66,7 +66,9 @@ export function LearnPage() {
             <h2 id="learn-mechanisms" className={h2}>
               {t('learn.mechanisms')}
             </h2>
-            <ol aria-labelledby="learn-mechanisms">
+            {/* role="list" explícito: o Safari tira a semântica de listas sem marcador. */}
+            {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- ver comentário acima */}
+            <ol role="list" aria-labelledby="learn-mechanisms">
               {mechanisms.map((d, i) => {
                 const { summary, rest } = splitSummary(d.meta, d.body);
                 return (
@@ -94,7 +96,9 @@ export function LearnPage() {
           <h2 id="learn-guide" className={h2}>
             {t('learn.guide')}
           </h2>
+          {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- Safari: lista sem marcador */}
           <ul
+            role="list"
             aria-labelledby="learn-guide"
             className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-1"
           >
@@ -114,6 +118,7 @@ export function LearnPage() {
                       {/* Link "esticado": o ::after cobre o bloco inteiro, o nome acessível é só o título. */}
                       <Link
                         to={`/aprender/guia/${g.slug}`}
+                        data-guide-link
                         className="inline-flex min-h-11 items-center text-lg leading-snug font-extrabold tracking-[-0.02em] outline-none after:absolute after:inset-0 after:rounded-tile"
                       >
                         {g.meta.title}

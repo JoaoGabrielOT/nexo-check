@@ -2,6 +2,15 @@
 @import '@nexo/ui/theme.css';
 @source "../../../packages/ui/src";
 
+/* Foco do bloco do guia: com :has() o contorno vai no <li>; sem :has(), no ::after do link,
+   que cobre o bloco inteiro (fora de camada para vencer o outline-none do utilitário). */
+@supports not selector(:has(*)) {
+  [data-guide-link]:focus-visible::after {
+    outline: 3px solid var(--color-bl);
+    outline-offset: 2px;
+  }
+}
+
 @layer base {
   html {
     background-color: var(--color-bg);

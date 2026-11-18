@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- o link sempre está no header */
 import { act, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { resetDbForTests } from '../src/db/db';
 import { updateSettings } from '../src/db';
 import { ThemeProvider } from '../src/app/theme';
@@ -14,7 +14,7 @@ beforeEach(async () => {
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(
+  return render(
     <ThemeProvider>
       <RouterProvider router={router} />
     </ThemeProvider>,
@@ -59,50 +59,102 @@ describe('layout', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
   });
 
-  it('cabeçalho transparente ganha fundo assim que o sentinela do topo sai da tela', async () => {
-    const observers: { cb: IntersectionObserverCallback; target?: Element; disconnect: Mock }[] =
-      [];
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        disconnect = vi.fn();
-        constructor(public cb: IntersectionObserverCallback) {
-          observers.push(this as unknown as (typeof observers)[number]);
-        }
-        observe(target: Element) {
-          (this as unknown as (typeof observers)[number]).target = target;
-        }
-        unobserve() {}
-        takeRecords() {
-          return [];
-        }
-      },
-    );
-    renderAt('/');
-    const header = (await screen.findByRole('link', { name: 'Configurações' })).closest('header')!;
-    expect(header).toHaveAttribute('data-scrolled', 'false');
-    expect(header.className).not.toMatch(/(^|\s)bg-bg(\s|$)/);
-    const obs = observers.at(-1)!;
-    // O sentinela é o primeiro filho do main, com 1 px, antes do conteúdo da página.
-    expect(obs.target).toBe(screen.getByRole('main').firstElementChild);
-    // Inteiramente visível (razão 1) só no topo; ao rolar, a razão cai abaixo de 1.
-    const fire = (atTop: boolean) =>
+  describe('fundo do cabeçalho (sentinela no topo do main)', () => {
+    type FakeObserver = {
+      cb: IntersectionObserverCallback;
+      options?: IntersectionObserverInit;
+      target?: Element;
+      disconnect: Mock;
+    };
+    let observers: FakeObserver[];
+
+    beforeEach(() => {
+      observers = [];
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          disconnect = vi.fn();
+          constructor(
+            public cb: IntersectionObserverCallback,
+            public options?: IntersectionObserverInit,
+          ) {
+            observers.push(this as unknown as FakeObserver);
+          }
+          observe(target: Element) {
+            (this as unknown as FakeObserver).target = target;
+          }
+          unobserve() {}
+          takeRecords() {
+            return [];
+          }
+        },
+      );
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    const fire = (obs: FakeObserver, isIntersecting: boolean) =>
       act(() =>
         obs.cb(
-          [
-            {
-              isIntersecting: atTop,
-              intersectionRatio: atTop ? 1 : 0,
-            } as IntersectionObserverEntry,
-          ],
+          [{ isIntersecting } as IntersectionObserverEntry],
           obs as unknown as IntersectionObserver,
         ),
       );
-    fire(false);
+
+    it('fica transparente no topo e ganha fundo quando o sentinela passa por baixo', async () => {
+      renderAt('/');
+      const header = (await screen.findByRole('link', { name: 'Configurações' })).closest(
+        'header',
+      )!;
+      expect(header).toHaveAttribute('data-scrolled', 'false');
+      expect(header.className).not.toMatch(/(^|\s)bg-bg(\s|$)/);
+      const obs = observers.at(-1)!;
+      // O sentinela é o primeiro filho do main, com 1 px, antes do conteúdo da página.
+      expect(obs.target).toBe(screen.getByRole('main').firstElementChild);
+      expect(obs.options?.threshold).toBe(0);
+      fire(obs, false);
+      expect(header).toHaveAttribute('data-scrolled', 'true');
+      expect(header).toHaveClass('bg-bg');
+      fire(obs, true);
+      expect(header).toHaveAttribute('data-scrolled', 'false');
+    });
+
+    it('altura fracionária do cabeçalho: margem arredondada para baixo, transparente no topo', async () => {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const height = this.tagName === 'HEADER' ? 56.6 : 0;
+        return { height, width: 390, top: 0, left: 0, bottom: height, right: 390 } as DOMRect;
+      });
+      renderAt('/');
+      const header = (await screen.findByRole('link', { name: 'Configurações' })).closest(
+        'header',
+      )!;
+      const obs = observers.at(-1)!;
+      expect(obs.options?.rootMargin).toBe('-56px 0px 0px 0px');
+      fire(obs, true);
+      expect(header).toHaveAttribute('data-scrolled', 'false');
+      fire(obs, false);
+      expect(header).toHaveAttribute('data-scrolled', 'true');
+    });
+
+    it('desconecta o observador ao desmontar', async () => {
+      const { unmount } = renderAt('/');
+      await screen.findByRole('link', { name: 'Configurações' });
+      const obs = observers.at(-1)!;
+      unmount();
+      expect(obs.disconnect).toHaveBeenCalled();
+    });
+  });
+
+  it('sem IntersectionObserver o cabeçalho fica com o fundo legível', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    renderAt('/');
+    const header = (await screen.findByRole('link', { name: 'Configurações' })).closest('header')!;
     expect(header).toHaveAttribute('data-scrolled', 'true');
     expect(header).toHaveClass('bg-bg');
-    fire(true);
-    expect(header).toHaveAttribute('data-scrolled', 'false');
     vi.unstubAllGlobals();
   });
 

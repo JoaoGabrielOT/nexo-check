@@ -41,6 +41,9 @@ describe('Aprender', () => {
   it('mecanismos em lista numerada de 01 a 05, cada item com seu botão de expandir', () => {
     render(<LearnPage />, { wrapper: MemoryRouter });
     const list = screen.getByRole('list', { name: 'Mecanismos' });
+    // role="list" explícito: o Safari tira a semântica de listas sem marcador.
+    expect(list).toHaveAttribute('role', 'list');
+    expect(screen.getByRole('list', { name: 'Guia digital' })).toHaveAttribute('role', 'list');
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(5);
     ['01', '02', '03', '04', '05'].forEach((n, i) => {
@@ -84,6 +87,8 @@ describe('Aprender', () => {
     // Link "esticado": o pseudo-elemento cobre o bloco, o nome acessível continua só o título.
     expect(within(items[0]!).getByRole('link')).toHaveClass('after:absolute', 'after:inset-0');
     expect(items[0]).toHaveClass('relative');
+    // Foco no bloco via :has(); sem :has() o próprio link mostra o contorno (ver index.css).
+    expect(within(items[0]!).getByRole('link')).toHaveAttribute('data-guide-link');
   });
 });
 

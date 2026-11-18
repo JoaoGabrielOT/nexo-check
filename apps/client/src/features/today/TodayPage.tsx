@@ -177,7 +177,7 @@ export function TodayPage() {
         <p className="mt-2 max-w-prose text-sm text-muted">{t('today.footerNotice')}</p>
       </div>
       {wide && (
-        <div className="sticky top-10">
+        <div className="sticky top-10 self-start">
           <DaySummary date={today} done={done} total={total} pendingKeys={pendingKeys} />
         </div>
       )}

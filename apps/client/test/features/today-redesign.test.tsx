@@ -110,9 +110,10 @@ describe('Hoje redesenhada', () => {
     const movement = (await getHabits()).find((h) => h.key === 'movement')!;
     const entry = (await getEntriesForDate(DAY)).find((e) => e.habitId === movement.id);
     expect(entry?.blocks).toEqual([10, 10]);
-    expect(
-      within(region).getAllByRole('button', { name: /^Remover bloco de 10 minutos/ }),
-    ).toHaveLength(2);
+    const chips = within(region).getAllByRole('button', { name: /^Remover bloco de 10 minutos/ });
+    expect(chips).toHaveLength(2);
+    // Alvo de remoção com pelo menos 44 × 44 px.
+    chips.forEach((chip) => expect(chip).toHaveClass('min-h-11', 'min-w-11'));
   });
 
   it('tile de água: "Adicionar um copo" e "Remover um copo" com nomes acessíveis', async () => {
@@ -178,6 +179,8 @@ describe('Hoje redesenhada', () => {
     mediaControl.matches = true;
     renderToday();
     const summary = await screen.findByRole('complementary', { name: 'Resumo do dia' });
+    // Coluna fixa ao rolar o bento, sem esticar na altura da grade.
+    expect(summary.parentElement).toHaveClass('sticky', 'self-start');
     expect(within(summary).getByRole('img', { name: '0 de 6 hábitos hoje' })).toBeInTheDocument();
     expect(within(summary).getByRole('link', { name: 'Registrar' })).toHaveAttribute(
       'href',
