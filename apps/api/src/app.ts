@@ -6,7 +6,9 @@ import { ZodError } from 'zod';
 import type { PrismaClient } from './db';
 import type { Env } from './env';
 import { healthRoutes } from './routes/health';
+import { checkinRoutes } from './routes/checkins';
 import { participantRoutes } from './routes/participants';
+import { questionnaireRoutes } from './routes/questionnaires';
 import { syncRoutes } from './routes/sync';
 
 declare const __APP_VERSION__: string | undefined;
@@ -96,6 +98,8 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     registerLimitMax: opts.registerLimitMax ?? 10,
   });
   await app.register(syncRoutes, { prefix: '/v1', prisma });
+  await app.register(questionnaireRoutes, { prefix: '/v1', prisma });
+  await app.register(checkinRoutes, { prefix: '/v1', prisma });
   // Demais rotas de negócio entram em `/v1` nas próximas tarefas.
 
   return app;

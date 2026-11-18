@@ -46,7 +46,7 @@ model QuestionnaireResponse {
   kind          String
   version       Int
   answers       Json
-  score         Int?
+  score         Float?
   submittedAt   DateTime @map("submitted_at")
 
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
@@ -60,7 +60,7 @@ model WorkshopSession {
   workshop    Int
   date        DateTime
   location    String
-  code        String
+  code        String   @unique
   expiresAt   DateTime @map("expires_at")
   manualCount Int      @default(0) @map("manual_count")
 
