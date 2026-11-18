@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { resetDbForTests } from '../src/db/db';
 import { updateSettings } from '../src/db';
 import { ThemeProvider } from '../src/app/theme';
+import { mediaControl } from './setup';
 import { routes } from '../src/app/router';
 
 beforeEach(async () => {
@@ -22,6 +23,9 @@ function renderAt(path: string) {
 }
 
 describe('layout', () => {
+  // Fora dos testes: um assert que falha não deixa o stub vazar para os seguintes.
+  afterEach(() => vi.unstubAllGlobals());
+
   it('mostra os 5 itens de navegação com nome acessível', async () => {
     renderAt('/');
     const nav = await screen.findByRole('navigation', { name: 'Navegação principal' });
@@ -90,10 +94,7 @@ describe('layout', () => {
         },
       );
     });
-    afterEach(() => {
-      vi.unstubAllGlobals();
-      vi.restoreAllMocks();
-    });
+    afterEach(() => vi.restoreAllMocks());
 
     const fire = (obs: FakeObserver, isIntersecting: boolean) =>
       act(() =>
@@ -140,6 +141,22 @@ describe('layout', () => {
       expect(header).toHaveAttribute('data-scrolled', 'true');
     });
 
+    it('mede de novo ao trocar de breakpoint, mesmo sem mudar a altura do cabeçalho', async () => {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const height = this.tagName === 'HEADER' ? 56.6 : 0;
+        return { height, width: 390, top: 0, left: 0, bottom: height, right: 390 } as DOMRect;
+      });
+      renderAt('/');
+      await screen.findByRole('link', { name: 'Configurações' });
+      expect(observers.at(-1)!.options?.rootMargin).toBe('-56px 0px 0px 0px');
+      // ≥ 1024 px: o cabeçalho vira o topo do menu lateral (fixed) e não cobre o conteúdo.
+      mediaControl.matches = true;
+      act(() => mediaControl.listeners.forEach((l) => l({ matches: true } as MediaQueryListEvent)));
+      expect(observers.at(-1)!.options?.rootMargin).toBe('0px 0px 0px 0px');
+    });
+
     it('desconecta o observador ao desmontar', async () => {
       const { unmount } = renderAt('/');
       await screen.findByRole('link', { name: 'Configurações' });
@@ -155,7 +172,6 @@ describe('layout', () => {
     const header = (await screen.findByRole('link', { name: 'Configurações' })).closest('header')!;
     expect(header).toHaveAttribute('data-scrolled', 'true');
     expect(header).toHaveClass('bg-bg');
-    vi.unstubAllGlobals();
   });
 
   it('barra inferior respeita a área segura e o item ativo tem ícone em pílula preenchida', async () => {

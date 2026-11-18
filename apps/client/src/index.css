@@ -3,7 +3,8 @@
 @source "../../../packages/ui/src";
 
 /* Foco do bloco do guia: com :has() o contorno vai no <li>; sem :has(), no ::after do link,
-   que cobre o bloco inteiro (fora de camada para vencer o outline-none do utilitário). */
+   que cobre o bloco inteiro. O outline-none do link vale só para o próprio link, não para o
+   ::after, então esta regra não disputa com utilitários e não precisa de camada. */
 @supports not selector(:has(*)) {
   [data-guide-link]:focus-visible::after {
     outline: 3px solid var(--color-bl);

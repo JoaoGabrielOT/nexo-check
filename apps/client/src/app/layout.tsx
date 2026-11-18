@@ -14,6 +14,7 @@ import { CONSENT_VERSION } from '@nexo/shared';
 import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
 import { PwaUpdateToast } from './PwaUpdateToast';
+import { useMediaQuery } from './useMediaQuery';
 
 const NAV_ITEMS: {
   to: string;
@@ -38,12 +39,14 @@ const focusRing =
  * 1 px no topo do main: com o cabeçalho sticky (no fluxo, antes do main), a área observada começa na
  * base dele (altura arredondada para baixo, para uma altura fracionária não esconder o sentinela no
  * topo), então qualquer rolagem já tira o sentinela. Com o cabeçalho fixed (menu lateral), a área é
- * a tela toda. A altura é medida de novo quando o cabeçalho muda de tamanho. Sem listener de scroll.
- * Sem IntersectionObserver, fica `true`: o cabeçalho opaco é sempre legível.
+ * a tela toda. A medida é refeita quando o cabeçalho muda de tamanho, quando a janela é
+ * redimensionada e quando `fixed` muda (troca de breakpoint, que nem sempre muda a altura).
+ * Sem listener de scroll. Sem IntersectionObserver, fica `true`: o cabeçalho opaco é sempre legível.
  */
 function useContentUnderHeader(
   sentinel: HTMLElement | null,
   header: RefObject<HTMLElement | null>,
+  fixed: boolean,
 ): boolean {
   const supported = typeof IntersectionObserver !== 'undefined';
   const [under, setUnder] = useState(false);
@@ -53,27 +56,23 @@ function useContentUnderHeader(
   useLayoutEffect(() => {
     const el = header.current;
     if (!el) return;
-    const measure = () =>
-      setTop(
-        getComputedStyle(el).position === 'fixed'
-          ? 0
-          : Math.floor(el.getBoundingClientRect().height),
-      );
+    const measure = () => setTop(fixed ? 0 : Math.floor(el.getBoundingClientRect().height));
     measure();
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', measure);
-      return () => window.removeEventListener('resize', measure);
-    }
-    const resize = new ResizeObserver(measure);
-    resize.observe(el);
-    return () => resize.disconnect();
-  }, [header, sentinel]);
+    window.addEventListener('resize', measure);
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    resize?.observe(el);
+    return () => {
+      window.removeEventListener('resize', measure);
+      resize?.disconnect();
+    };
+  }, [header, sentinel, fixed]);
 
   useEffect(() => {
     if (!sentinel || top === null || !supported) return;
     const observer = new IntersectionObserver(
       ([entry]) => setUnder(entry !== undefined && !entry.isIntersecting),
-      { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0 },
+      // `${-top}px`: com top 0 fica "0px" (e não "-0px").
+      { rootMargin: `${-top}px 0px 0px 0px`, threshold: 0 },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -95,7 +94,9 @@ export function Layout() {
   const headerRef = useRef<HTMLElement>(null);
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const inOnboarding = pathname.startsWith('/onboarding');
-  const scrolled = useContentUnderHeader(sentinel, headerRef);
+  // Mesmo limite do lg: com o menu lateral, o header é fixed e fica fora da área do conteúdo.
+  const wide = useMediaQuery('(min-width: 1024px)');
+  const scrolled = useContentUnderHeader(sentinel, headerRef, wide && !inOnboarding);
   // Sem configurações carregadas não renderiza nada, para não piscar um redirecionamento errado.
   if (!settings) return null;
   if (!inOnboarding && !EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) {
