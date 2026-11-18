@@ -5,6 +5,8 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 import type { PrismaClient } from './db';
 import type { Env } from './env';
+import { registerAdminJwt } from './plugins/admin-auth';
+import { adminRoutes } from './routes/admin';
 import { healthRoutes } from './routes/health';
 import { checkinRoutes } from './routes/checkins';
 import { participantRoutes } from './routes/participants';
@@ -22,6 +24,8 @@ export interface BuildAppOptions {
   rateLimitMax?: number;
   /** Limite de registros por IP por hora em POST /v1/participants (padrão 10). */
   registerLimitMax?: number;
+  /** Limite de tentativas de login admin por IP a cada 15 minutos (padrão 5). */
+  loginLimitMax?: number;
   /** Destino dos logs (testes); com ele o logger fica ligado mesmo em NODE_ENV=test. */
   logStream?: { write(msg: string): void };
 }
@@ -100,6 +104,13 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(syncRoutes, { prefix: '/v1', prisma });
   await app.register(questionnaireRoutes, { prefix: '/v1', prisma });
   await app.register(checkinRoutes, { prefix: '/v1', prisma });
+  await registerAdminJwt(app, env.ADMIN_JWT_SECRET);
+  await app.register(adminRoutes, {
+    prefix: '/v1',
+    prisma,
+    env,
+    loginLimitMax: opts.loginLimitMax ?? 5,
+  });
   // Demais rotas de negócio entram em `/v1` nas próximas tarefas.
 
   return app;
