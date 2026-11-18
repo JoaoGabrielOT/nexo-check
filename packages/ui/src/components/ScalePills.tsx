@@ -8,8 +8,12 @@ export interface ScalePillsProps {
   onChange: (value: ScaleValue) => void;
   /** Palavra de cada ponto, do 1 ao 5 (ex.: "Muito baixo" … "Muito alto"). */
   words: [string, string, string, string, string];
+  /** Nome acessível de cada opção; o app passa o formato do pt-BR.json. Padrão: "3 — Médio". */
+  formatLabel?: (n: ScaleValue, word: string) => string;
   className?: string;
 }
+
+const defaultLabel = (n: ScaleValue, word: string) => `${n} — ${word}`;
 
 const OPTIONS: ScaleValue[] = [1, 2, 3, 4, 5];
 
@@ -26,7 +30,14 @@ const PILL = [
 const NEXT: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
 // Radiogroup próprio (padrão APG): uma parada de tabulação, setas movem foco e seleção com volta.
-export function ScalePills({ label, value, onChange, words, className }: ScalePillsProps) {
+export function ScalePills({
+  label,
+  value,
+  onChange,
+  words,
+  formatLabel = defaultLabel,
+  className,
+}: ScalePillsProps) {
   const labelId = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -55,7 +66,7 @@ export function ScalePills({ label, value, onChange, words, className }: ScalePi
       <div role="radiogroup" aria-labelledby={labelId} className="flex max-w-xl items-end gap-2">
         {OPTIONS.map((n, i) => {
           const checked = value === n;
-          const word = words[i];
+          const word = words[i] ?? '';
           return (
             <button
               key={n}
@@ -65,7 +76,7 @@ export function ScalePills({ label, value, onChange, words, className }: ScalePi
               type="button"
               role="radio"
               aria-checked={checked}
-              aria-label={`${n} — ${word}`}
+              aria-label={formatLabel(n, word)}
               tabIndex={checked || (value === null && i === 0) ? 0 : -1}
               onClick={() => select(i)}
               onKeyDown={(e) => onKeyDown(e, i)}

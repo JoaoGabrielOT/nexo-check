@@ -66,6 +66,15 @@ describe('contraste dos tokens', () => {
     },
   );
 
+  it.each(['#ffffff', '#f7f5f2'])('secundário claro #4a4780 sobre %s passa AA', (bg) => {
+    expect(contrastRatio('#4a4780', bg)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it('texto do herói claro (#f7f5f2) sobre navy e navy sobre a ação laranja passam AA', () => {
+    expect(contrastRatio('#f7f5f2', NAVY)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(NAVY, '#f5a64a')).toBeGreaterThanOrEqual(AA);
+  });
+
   it.each(DARK.labels)('rótulo colorido %s passa AA sobre a superfície escura', (label) => {
     expect(contrastRatio(label, DARK.surface)).toBeGreaterThanOrEqual(AA);
   });
@@ -175,6 +184,35 @@ describe('ScalePills', () => {
     expect(screen.getByRole('radio', { name: '5 — Muito alto' })).toBeChecked();
     await user.keyboard('{ArrowRight}');
     expect(screen.getByRole('radio', { name: '1 — Muito baixo' })).toBeChecked();
+  });
+
+  it('Home, ArrowUp e ArrowDown também movem a seleção', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={4} />);
+    await user.tab();
+    await user.keyboard('{Home}');
+    expect(screen.getByRole('radio', { name: '1 — Muito baixo' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: '1 — Muito baixo' })).toBeChecked();
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(screen.getByRole('radio', { name: '3 — Médio' })).toBeChecked();
+    await user.keyboard('{ArrowUp}');
+    expect(screen.getByRole('radio', { name: '2 — Baixo' })).toHaveFocus();
+    expect(screen.getByRole('radio', { name: '2 — Baixo' })).toBeChecked();
+    await user.keyboard('{ArrowUp}{ArrowUp}');
+    expect(screen.getByRole('radio', { name: '5 — Muito alto' })).toBeChecked();
+  });
+
+  it('o formato do nome de cada opção vem do consumidor (i18n)', () => {
+    render(
+      <ScalePills
+        label="Energia"
+        words={words}
+        value={null}
+        onChange={() => {}}
+        formatLabel={(n, word) => `${word} (${n} de 5)`}
+      />,
+    );
+    expect(screen.getByRole('radio', { name: 'Médio (3 de 5)' })).toBeInTheDocument();
   });
 
   it('clicar seleciona a opção', async () => {

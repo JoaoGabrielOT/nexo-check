@@ -2,18 +2,6 @@
 @import '@nexo/ui/theme.css';
 @source "../../../packages/ui/src";
 
-@keyframes nexo-pop {
-  0% {
-    transform: scale(0.97);
-  }
-  60% {
-    transform: scale(1.02);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
 @layer base {
   html {
     background-color: var(--color-bg);

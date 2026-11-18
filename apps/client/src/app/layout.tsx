@@ -1,5 +1,5 @@
 import { BookOpen, CalendarCheck, ClipboardList, Settings, Sprout, TrendingUp } from 'lucide-react';
-import type { ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
@@ -8,7 +8,11 @@ import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
 import { PwaUpdateToast } from './PwaUpdateToast';
 
-const NAV_ITEMS: { to: string; key: string; icon: ComponentType<{ className?: string }> }[] = [
+const NAV_ITEMS: {
+  to: string;
+  key: string;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+}[] = [
   { to: '/', key: 'today', icon: CalendarCheck },
   { to: '/registro', key: 'log', icon: ClipboardList },
   { to: '/progresso', key: 'progress', icon: TrendingUp },
@@ -22,11 +26,27 @@ const EXEMPT_PREFIXES = ['/checkin', '/admin'];
 const focusRing =
   'focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl';
 
-// O fundo fica só no html (index.css). O Wallpaper é fixed z-0 e o
-// conteúdo (header, nav e main) fica acima dele com z-10/z-30, sem z-index negativo.
+/** `true` depois que a página rolou um pouco: o cabeçalho só ganha fundo e linha fina aí. */
+function useScrolled(threshold = 4): boolean {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > threshold);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [threshold]);
+  return scrolled;
+}
+
+// O fundo fica só no html (index.css). O Wallpaper é fixed z-0 e o conteúdo (header, nav e main)
+// fica acima dele com z-10/z-30/z-40, sem z-index negativo. Header e barras não pintam um bloco
+// opaco por cima do wallpaper: transparentes ou com 92% do fundo, sem backdrop-filter; o menu
+// lateral é uma superfície neutra (branco no claro, grafite no escuro), nunca navy.
+// < 1024 px: barra inferior. ≥ 1024 px: menu lateral e o header vira o topo dele.
 export function Layout() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  const scrolled = useScrolled();
   const settings = useLiveQuery(getSettings, []);
   // Sem configurações carregadas não renderiza nada, para não piscar um redirecionamento errado.
   if (!settings) return null;
@@ -37,6 +57,7 @@ export function Layout() {
       return <Navigate to="/onboarding/consentimento" replace />;
     }
   }
+  const withNav = !inOnboarding;
   return (
     <>
       <a
@@ -49,23 +70,37 @@ export function Layout() {
         {t('a11y.skipToContent')}
       </a>
       <Wallpaper />
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-bg px-[6vw] py-4 lg:pl-60">
-        <span className="text-lg font-extrabold tracking-tight">{t('brand')}</span>
+      <header
+        data-scrolled={scrolled}
+        className={cn(
+          'sticky top-0 z-40 flex items-center justify-between border-b border-transparent px-[6vw] py-2 motion-safe:transition-colors',
+          scrolled && 'border-border/12 bg-bg/92',
+          withNav &&
+            'lg:fixed lg:left-0 lg:w-60 lg:border-transparent lg:bg-transparent lg:pt-6 lg:pr-3 lg:pl-8',
+        )}
+      >
+        <span className="text-lg font-extrabold tracking-[-0.03em]">{t('brand')}</span>
         <NavLink
           to="/config"
           aria-label={t('nav.settings')}
-          className={cn(
-            'flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy transition-colors dark:text-text',
-            focusRing,
-          )}
+          className={({ isActive }) =>
+            cn(
+              'flex min-h-11 min-w-11 items-center justify-center rounded-full text-text transition-colors hover:bg-text/8',
+              isActive && 'bg-text/10',
+              focusRing,
+            )
+          }
         >
           <Settings aria-hidden="true" className="size-6" />
         </NavLink>
       </header>
-      {!inOnboarding && (
+      {withNav && (
         <nav
           aria-label={t('a11y.mainNav')}
-          className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t-2 border-border bg-bg px-2 py-1 lg:inset-y-0 lg:right-auto lg:w-56 lg:flex-col lg:justify-start lg:gap-2 lg:border-t-0 lg:border-r-2 lg:px-4 lg:pt-24"
+          className={cn(
+            'fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/12 bg-bg/92 px-1 pt-1.5 pb-[env(safe-area-inset-bottom)]',
+            'lg:inset-y-0 lg:right-auto lg:w-60 lg:flex-col lg:justify-start lg:gap-1 lg:border-t-0 lg:border-r lg:border-border/10 lg:bg-surface lg:px-4 lg:pt-24',
+          )}
         >
           {NAV_ITEMS.map(({ to, key, icon: Icon }) => (
             <NavLink
@@ -74,14 +109,31 @@ export function Layout() {
               end={to === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-full px-3 py-1 text-xs font-semibold text-navy transition-colors lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:text-sm dark:text-text',
+                  'mb-1 flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 py-0.5 text-[11px] leading-tight transition-colors',
+                  'lg:mb-0 lg:flex-none lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:py-2.5 lg:text-sm',
+                  isActive
+                    ? 'font-extrabold text-text lg:bg-navy lg:text-[#f7f5f2] lg:dark:bg-lav2 lg:dark:text-navy'
+                    : 'font-semibold text-muted hover:text-text lg:hover:bg-text/6',
                   focusRing,
-                  isActive && 'bg-navy text-white dark:bg-lav2 dark:text-navy',
                 )
               }
             >
-              <Icon aria-hidden="true" className="size-5" />
-              {t(`nav.${key}`)}
+              {({ isActive }) => (
+                <>
+                  <span
+                    data-nav-icon
+                    data-active={isActive}
+                    className={cn(
+                      'flex h-8 w-14 items-center justify-center rounded-full transition-colors lg:h-auto lg:w-auto',
+                      isActive &&
+                        'max-lg:bg-navy max-lg:text-[#f7f5f2] max-lg:dark:bg-lav2 max-lg:dark:text-navy',
+                    )}
+                  >
+                    <Icon aria-hidden="true" className="size-5" strokeWidth={isActive ? 2.5 : 2} />
+                  </span>
+                  {t(`nav.${key}`)}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -89,7 +141,11 @@ export function Layout() {
       <main
         id="conteudo"
         tabIndex={-1}
-        className="relative z-10 px-[6vw] pt-4 pb-28 outline-none lg:pb-10 lg:pl-60"
+        className={cn(
+          'relative z-10 px-[6vw] pt-3 pb-12 outline-none',
+          withNav &&
+            'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pt-12 lg:pr-14 lg:pb-14 lg:pl-[calc(15rem+3rem)] xl:pr-16',
+        )}
       >
         <Outlet />
       </main>

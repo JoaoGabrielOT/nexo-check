@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- índices conhecidos nos fixtures */
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TodayPage } from '../../src/features/today';
@@ -15,6 +15,12 @@ import {
 } from '../../src/db';
 
 const progress = () => screen.findByRole('progressbar', { name: 'Progresso do dia' });
+// Herói do movimento: minutos grandes e "de N min" em elementos separados.
+async function expectMovement(minutes: number, target: number) {
+  const hero = await screen.findByRole('region', { name: 'Movimento do dia' });
+  expect(await within(hero).findByText(String(minutes))).toBeInTheDocument();
+  expect(within(hero).getByText(`de ${target} min`)).toBeInTheDocument();
+}
 
 beforeEach(async () => {
   await resetDbForTests();
@@ -46,7 +52,7 @@ describe('Hoje', () => {
     await user.click(
       await screen.findByRole('checkbox', { name: 'Marcar Respiração de recuperação como feita' }),
     );
-    const plus = screen.getByRole('button', { name: 'Aumentar Pausas ativas' });
+    const plus = screen.getByRole('button', { name: 'Adicionar uma pausa' });
     for (let i = 0; i < 6; i++) await user.click(plus);
     await waitFor(async () => expect(await progress()).toHaveAttribute('aria-valuenow', '33'));
     expect(screen.getByText('2 de 6 hábitos')).toBeInTheDocument();
@@ -61,20 +67,21 @@ describe('Hoje', () => {
     await user.click(
       screen.getByRole('button', { name: 'Adicionar 5 minutos a Movimento do dia' }),
     );
-    expect(await screen.findByText('15 / 30 min')).toBeInTheDocument();
+    await expectMovement(15, 30);
     await user.click(
       screen.getByRole('button', { name: 'Remover bloco de 10 minutos de Movimento do dia' }),
     );
-    expect(await screen.findByText('5 / 30 min')).toBeInTheDocument();
+    await expectMovement(5, 30);
 
-    expect(screen.getByRole('button', { name: 'Diminuir Hidratação' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remover um copo' })).toBeDisabled();
   });
 
   it('sono: stepper de 0,5 h a partir de 7', async () => {
     const user = userEvent.setup();
     render(<TodayPage />);
     await user.click(await screen.findByRole('button', { name: 'Aumentar 0,5 h de Sono' }));
-    expect(await screen.findByText('7,5 h')).toBeInTheDocument();
+    const sleep = screen.getByRole('region', { name: 'Sono' });
+    await waitFor(() => expect(sleep).toHaveTextContent(/7,5\s*h/));
   });
 
   it('Review Focus 1: virada de meia-noite grava no novo dia e zera a barra', async () => {
@@ -120,10 +127,10 @@ describe('Hoje', () => {
     }
     setNowForTests(() => new Date(2026, 10, 17, 12, 0, 0));
     const { unmount } = render(<TodayPage />);
-    expect(await screen.findByText('0 / 15 min')).toBeInTheDocument();
+    await expectMovement(0, 15);
     unmount();
     render(<TodayPage />);
-    expect(await screen.findByText('0 / 15 min')).toBeInTheDocument();
+    await expectMovement(0, 15);
     expect((await getHabits())[0]?.target).toBe(15);
   });
 });

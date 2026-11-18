@@ -57,7 +57,9 @@ describe('onboarding', () => {
     expect((await getHabits()).length).toBe(6);
 
     await user.click(screen.getByRole('button', { name: 'Começar' }));
-    expect(await screen.findByRole('heading', { name: 'Hoje' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('progressbar', { name: 'Progresso do dia' }),
+    ).toBeInTheDocument();
   });
 
   it('recusar grava consent null e nada entra no outbox', async () => {
@@ -66,7 +68,9 @@ describe('onboarding', () => {
     await user.click(await screen.findByRole('button', { name: 'Continuar' }));
     await user.click(screen.getByRole('button', { name: 'Usar sem enviar dados' }));
 
-    expect(await screen.findByRole('heading', { name: 'Hoje' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('progressbar', { name: 'Progresso do dia' }),
+    ).toBeInTheDocument();
     const s = await getSettings();
     expect(s.consent).toBeNull();
     expect(s.participant).toBeNull();

@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- o link sempre está no header */
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { resetDbForTests } from '../src/db/db';
@@ -56,6 +57,34 @@ describe('layout', () => {
     expect(screen.getByRole('link', { name: 'Configurações' })).toHaveAttribute('href', '/config');
     expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
+  });
+
+  it('cabeçalho transparente ganha fundo e linha fina só depois de rolar', async () => {
+    renderAt('/');
+    const header = (await screen.findByRole('link', { name: 'Configurações' })).closest('header')!;
+    expect(header).toHaveAttribute('data-scrolled', 'false');
+    expect(header.className).not.toMatch(/(^|\s)bg-bg(\s|$)/);
+    act(() => {
+      Object.defineProperty(window, 'scrollY', { value: 40, configurable: true });
+      fireEvent.scroll(window);
+    });
+    expect(header).toHaveAttribute('data-scrolled', 'true');
+    act(() => {
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+      fireEvent.scroll(window);
+    });
+    expect(header).toHaveAttribute('data-scrolled', 'false');
+  });
+
+  it('barra inferior respeita a área segura e o item ativo tem ícone em pílula preenchida', async () => {
+    renderAt('/');
+    const nav = await screen.findByRole('navigation', { name: 'Navegação principal' });
+    expect(nav.className).toContain('pb-[env(safe-area-inset-bottom)]');
+    const active = screen.getByRole('link', { name: 'Hoje' });
+    expect(active.querySelector('[data-nav-icon]')).toHaveAttribute('data-active', 'true');
+    expect(
+      screen.getByRole('link', { name: 'Registro' }).querySelector('[data-nav-icon]'),
+    ).toHaveAttribute('data-active', 'false');
   });
 
   it('renderiza a rota admin de forma preguiçosa', async () => {

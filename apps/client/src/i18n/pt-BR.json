@@ -76,14 +76,54 @@
     "addMinutes": "Adicionar {{minutes}} minutos a {{name}}",
     "removeBlock": "Remover bloco de {{minutes}} minutos de {{name}}",
     "blockChip": "{{minutes}} min",
-    "minutesProgress": "{{value}} / {{target}} min",
-    "counterProgress": "{{value}} / {{target}}",
     "hoursIncrease": "Aumentar 0,5 h de {{name}}",
     "hoursDecrease": "Diminuir 0,5 h de {{name}}",
     "hours": "{{value}} h",
     "hoursEmpty": "– h",
-    "hoursTarget": "Meta: {{min}} a {{max}} h",
-    "hoursTargetMin": "Meta: a partir de {{min}} h"
+    "hoursTarget": "Meta {{min}} a {{max}} h",
+    "hoursTargetMin": "Meta a partir de {{min}} h",
+    "movementOf": "de {{target}} min",
+    "movementLine_zero": "Leve a moderado, no seu ritmo. Pode ser dividido em blocos.",
+    "movementLine_one": "Leve a moderado, no seu ritmo · 1 bloco",
+    "movementLine_other": "Leve a moderado, no seu ritmo · {{count}} blocos",
+    "minutesOf": "{{value}} de {{target}} min",
+    "unit": {
+      "hydration": "copos de água",
+      "active_breaks": "1 a cada hora sentado"
+    },
+    "addCup": "Adicionar um copo",
+    "removeCup": "Remover um copo",
+    "addBreak": "Adicionar uma pausa",
+    "removeBreak": "Remover uma pausa",
+    "checkDone": "Feita",
+    "checkPending": "Marcar como feita",
+    "doneBadge": "Feito",
+    "suggestion": {
+      "allDone": "dia completo, bom descanso",
+      "walk10": "que tal 10 min de caminhada?",
+      "keepGoing": "mais um bloco curto cabe no seu dia?",
+      "recover": "uma pausa ou uma respiração pode ajudar a recuperar"
+    },
+    "announce": {
+      "counter": "{{name}}: {{value}} de {{target}}",
+      "minutes": "{{name}}: {{value}} de {{target}} min",
+      "hours": "{{name}}: {{value}} h",
+      "booleanOn": "{{name}}: feita",
+      "booleanOff": "{{name}}: desmarcada"
+    },
+    "summary": {
+      "label": "Resumo do dia",
+      "ring": "{{done}} de {{total}} hábitos hoje",
+      "ringValue": "{{done}} de {{total}}",
+      "ringCaption": "hábitos hoje",
+      "logTitle": "Como foi seu dia?",
+      "logHint": "Estresse, humor, disposição e sono, em poucos toques.",
+      "logCta": "Registrar",
+      "logged": "Registrado",
+      "loggedCta": "Ver registro",
+      "learn": "Aprender"
+    },
+    "dateTitle": "{{weekday}}, {{day}} de {{month}}"
   },
   "onboarding": {
     "welcomeTitle": "Boas-vindas",
@@ -163,5 +203,8 @@
     "back": "Voltar para Aprender",
     "notFound": "Conteúdo não encontrado",
     "notFoundHint": "Este conteúdo não existe ou foi removido."
+  },
+  "scale": {
+    "option": "{{n}} — {{word}}"
   }
 }

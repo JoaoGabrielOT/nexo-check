@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ThemeProvider, useTheme } from '../src/app/theme';
 import { mediaControl } from './setup';
 
@@ -68,5 +68,50 @@ describe('useTheme com system', () => {
     const [l2] = [...mediaControl.listeners];
     second.unmount();
     expect(mediaControl.remove).toHaveBeenCalledWith('change', l2);
+  });
+});
+
+describe('theme-color', () => {
+  const metas = () =>
+    [...document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map(
+      (m) => m.content,
+    );
+
+  beforeEach(() => {
+    document.head.innerHTML =
+      '<meta name="theme-color" content="#f7f5f2" media="(prefers-color-scheme: light)" />' +
+      '<meta name="theme-color" content="#16141a" media="(prefers-color-scheme: dark)" />';
+  });
+  afterEach(() => {
+    document.head.innerHTML = '';
+  });
+
+  it('segue o sistema pelas duas metas e usa a cor do tema escolhido quando forçado', () => {
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(metas()).toEqual(['#f7f5f2', '#16141a']);
+    act(() => screen.getByText('dark').click());
+    expect(metas()).toEqual(['#16141a', '#16141a']);
+    act(() => screen.getByText('light').click());
+    expect(metas()).toEqual(['#f7f5f2', '#f7f5f2']);
+  });
+
+  it('volta às cores de cada esquema ao voltar para system', () => {
+    function Back() {
+      const { setTheme } = useTheme();
+      return <button onClick={() => setTheme('system')}>system</button>;
+    }
+    render(
+      <ThemeProvider>
+        <Probe />
+        <Back />
+      </ThemeProvider>,
+    );
+    act(() => screen.getByText('dark').click());
+    act(() => screen.getByText('system').click());
+    expect(metas()).toEqual(['#f7f5f2', '#16141a']);
   });
 });
