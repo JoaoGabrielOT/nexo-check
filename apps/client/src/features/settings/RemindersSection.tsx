@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Switch, Tile, toast } from '@nexo/ui';
-import { getSettings, updateSettings } from '../../db';
+import { db, getSettings, updateSettings } from '../../db';
 import type { ReminderSettings } from '../../db';
 import { NumberStepper } from './NumberStepper';
 import { getNotificationAdapter, permissionState } from '../../platform/notifications';
@@ -32,18 +32,17 @@ export function RemindersSection() {
   if (!settings) return null;
   const { reminders } = settings;
 
-  // Lê as configurações no momento da escrita: dois toques seguidos não perdem o primeiro.
+  // Leitura e escrita na mesma transação: dois toques seguidos não perdem o primeiro.
   const change = <K extends Kind>(kind: K, patch: Partial<ReminderSettings[K]>) =>
-    getSettings()
-      .then((current) => {
+    db
+      .transaction('rw', db.settings, async () => {
+        const current = await getSettings();
         const rule = { ...current.reminders[kind], ...patch };
-        if ('to' in rule && 'from' in rule && rule.to <= rule.from) {
-          setWindowError(kind);
-          return;
-        }
-        setWindowError(null);
-        return updateSettings({ reminders: { ...current.reminders, [kind]: rule } });
+        if ('to' in rule && 'from' in rule && rule.to <= rule.from) return kind;
+        await updateSettings({ reminders: { ...current.reminders, [kind]: rule } });
+        return null;
       })
+      .then(setWindowError)
       .catch(() => void toast(t('errors.generic')));
 
   // O pedido de permissão acontece ao ligar um lembrete (gesto da pessoa), enquanto ainda não foi decidido.

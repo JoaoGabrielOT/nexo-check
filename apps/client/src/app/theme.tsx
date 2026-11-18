@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { toast } from '@nexo/ui';
 import { getSettings, updateSettings } from '../db';
+import i18n from '../i18n';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -57,21 +59,38 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // `settings.theme` é a fonte da verdade: importar um backup ou apagar tudo muda o tema também.
   const stored = useLiveQuery(getSettings, [])?.theme;
 
+  // Escolha da pessoa ainda não confirmada em `settings`: emissões antigas da consulta não a revertem.
+  const [pending, setPending] = useState<Theme | null>(null);
   // Ajuste durante a renderização (sem efeito): o estado segue `stored` assim que ele muda.
   const [seen, setSeen] = useState<Theme | undefined>(undefined);
   if (stored !== undefined && stored !== seen) {
     setSeen(stored);
-    setThemeState(stored);
+    if (pending === null || stored === pending) setThemeState(stored);
+    if (stored === pending) setPending(null);
   }
   useEffect(() => {
-    if (stored !== undefined) writeThemeMirror(stored);
-  }, [stored]);
+    if (stored !== undefined && stored === theme) writeThemeMirror(stored);
+  }, [stored, theme]);
 
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
-    writeThemeMirror(next);
-    updateSettings({ theme: next }).catch(() => undefined);
-  }, []);
+  const setTheme = useCallback(
+    (next: Theme) => {
+      setThemeState(next);
+      setPending(next === stored ? null : next);
+      writeThemeMirror(next);
+      updateSettings({ theme: next }).catch(() => {
+        // Não gravou: volta ao que está salvo e avisa.
+        toast(i18n.t('errors.generic'));
+        getSettings()
+          .then((s) => {
+            setPending(null);
+            setThemeState(s.theme);
+            writeThemeMirror(s.theme);
+          })
+          .catch(() => undefined);
+      });
+    },
+    [stored],
+  );
 
   useEffect(() => {
     const root = document.documentElement;

@@ -10,6 +10,8 @@ export interface NotificationAdapter {
 
 type Kind = 'movement' | 'activeBreak' | 'water' | 'bedtime';
 
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 const toMinutes = (hhmm: string): number => {
   const [h = 0, m = 0] = hhmm.split(':').map(Number);
   return h * 60 + m;
@@ -75,17 +77,18 @@ function notify(kind: Kind): void {
 // Um timer por lembrete: o que já disparou é substituído, nunca acumulado.
 const timers = new Map<Kind, ReturnType<typeof setTimeout>>();
 
+// Horários inválidos (ex.: vindos de um backup editado) não agendam nada.
 function nextFor(kind: Kind, rules: ReminderSettings, at: Date): Date | null {
   switch (kind) {
     case 'movement':
     case 'bedtime': {
       const r = rules[kind];
-      return r.enabled ? nextFixedTime(r.time, at) : null;
+      return r.enabled && HHMM.test(r.time) ? nextFixedTime(r.time, at) : null;
     }
     case 'activeBreak':
     case 'water': {
       const r = rules[kind];
-      return r.enabled ? nextIntervalTime(r, at) : null;
+      return r.enabled && HHMM.test(r.from) && HHMM.test(r.to) ? nextIntervalTime(r, at) : null;
     }
   }
 }
@@ -95,11 +98,13 @@ function arm(kind: Kind, rules: ReminderSettings): void {
   // +1 s: um timer que dispara um pouco antes da hora não pode reagendar o mesmo horário.
   const next = nextFor(kind, rules, new Date(at.getTime() + 1000));
   if (!next) return;
+  const delay = next.getTime() - at.getTime();
+  if (!Number.isFinite(delay) || delay < 0) return;
   const timer = setTimeout(() => {
     // Reagenda antes de notificar: uma falha ao exibir não pode quebrar a cadeia.
     arm(kind, rules);
     notify(kind);
-  }, next.getTime() - at.getTime());
+  }, delay);
   timers.set(kind, timer);
 }
 

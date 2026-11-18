@@ -142,6 +142,17 @@ describe('dados', () => {
     expect(await getEntriesForDate(TODAY)).toEqual(before);
   });
 
+  it('backup com horário de lembrete inválido é rejeitado na importação', async () => {
+    const user = userEvent.setup();
+    const backup = await exportAll();
+    backup.data.settings.reminders.movement.time = '25:99';
+    vi.mocked(files.pickFile).mockResolvedValue(JSON.stringify(backup));
+    renderConfig();
+    await user.click(await screen.findByRole('button', { name: 'Importar backup' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Arquivo de backup inválido');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('importar backup válido pede confirmação e substitui os dados', async () => {
     const user = userEvent.setup();
     const [movement] = await getHabits();

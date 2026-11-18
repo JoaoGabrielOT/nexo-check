@@ -69,6 +69,18 @@ describe('webNotifications.schedule', () => {
     expect(nextIntervalTime(rule, at(8, 5))).toEqual(at(8, 30));
   });
 
+  it('horários inválidos não agendam timer', () => {
+    const spy = vi.spyOn(globalThis, 'setTimeout');
+    webNotifications.schedule({
+      movement: { enabled: true, time: '25:99' },
+      activeBreak: { enabled: true, everyMinutes: 60, from: 'xx', to: '18:00' },
+      water: { enabled: true, everyMinutes: Number.NaN, from: '08:00', to: '7:5' },
+      bedtime: { enabled: true, time: '' },
+    });
+    expect(spy).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('lembretes desligados não agendam nada', () => {
     webNotifications.schedule(DEFAULT_REMINDERS);
     expect(vi.getTimerCount()).toBe(0);

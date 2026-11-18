@@ -9,7 +9,7 @@ import {
 import type { AchievementId } from '@nexo/shared';
 
 const iso = z.iso.datetime();
-const hhmm = z.string().regex(/^\d{2}:\d{2}$/);
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 const achievementId = z.enum([
   'first_full_day',

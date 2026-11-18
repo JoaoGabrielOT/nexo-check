@@ -38,7 +38,6 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
   const remove: () => Promise<void> =
     deleteRemote ??
     (async () => {
-      if (!(await getSettings()).participant?.registered) return;
       throw new Error(t('settings.data.syncUnavailable'));
     });
 
@@ -108,14 +107,20 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
   };
 
   const confirmWipe = async () => {
-    // Lê no momento do clique: o valor da consulta ao vivo pode ainda não ter carregado.
-    if ((await getSettings()).participant?.registered) {
-      try {
-        await remove();
-      } catch {
-        setPending('remoteFail');
-        return;
+    try {
+      // Lê no momento do clique: o valor da consulta ao vivo pode ainda não ter carregado.
+      if ((await getSettings()).participant?.registered) {
+        try {
+          await remove();
+        } catch {
+          setPending('remoteFail');
+          return;
+        }
       }
+    } catch {
+      setPending(null);
+      report();
+      return;
     }
     await wipeAndLeave();
   };
