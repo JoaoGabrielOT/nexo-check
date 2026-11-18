@@ -4,7 +4,10 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import '../src/i18n';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 // jsdom não implementa matchMedia: stub controlável pelos testes.
 type Listener = (e: MediaQueryListEvent) => void;

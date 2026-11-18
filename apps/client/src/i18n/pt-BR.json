@@ -229,5 +229,128 @@
   },
   "scale": {
     "option": "{{n}} — {{word}}"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Aparência",
+      "theme": "Tema",
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema",
+      "language": "Idioma",
+      "pt-BR": "Português (Brasil)"
+    },
+    "habits": {
+      "title": "Hábitos",
+      "intro": "Desative o que não faz sentido para você. Mudar uma meta vale a partir de agora e não altera dias já registrados.",
+      "active": "Ativar {{name}}",
+      "custom": "Seu hábito",
+      "target": "Meta de {{name}}",
+      "targetMax": "Limite máximo de {{name}}",
+      "decrease": "Diminuir {{what}}",
+      "increase": "Aumentar {{what}}",
+      "unit": {
+        "counter": "{{n}} por dia",
+        "minutes": "{{n}} min",
+        "range_hours": "{{n}} h",
+        "boolean": "1 vez"
+      },
+      "moveUp": "Subir {{name}}",
+      "moveDown": "Descer {{name}}",
+      "delete": "Excluir {{name}}",
+      "deleteTitle": "Excluir {{name}}?",
+      "deleteBody": "O hábito deixa de aparecer no app. Esta ação não pode ser desfeita.",
+      "deleteConfirm": "Excluir hábito",
+      "cancel": "Cancelar",
+      "progressive": "Modo progressivo",
+      "progressiveHint": "A meta começa em 10 min e sobe aos poucos, conforme você cumpre, até o teto escolhido.",
+      "ceiling": "Teto da meta de movimento",
+      "addTitle": "Novo hábito",
+      "name": "Nome do hábito",
+      "namePlaceholder": "Ex.: Leitura",
+      "type": "Tipo",
+      "types": {
+        "boolean": "Sim ou não",
+        "counter": "Contador",
+        "minutes": "Minutos"
+      },
+      "newTarget": "Meta diária",
+      "add": "Adicionar hábito",
+      "added": "Hábito adicionado."
+    },
+    "sync": {
+      "title": "Sincronização",
+      "notRegistered": "Sincronização ainda não configurada neste aparelho.",
+      "registered": "Sincronização ligada. Só os seus registros de hábitos e do dia são enviados, sem as anotações.",
+      "code": "Código de participante",
+      "key": "Chave de recuperação",
+      "show": "Mostrar chave",
+      "hide": "Ocultar chave",
+      "copy": "Copiar",
+      "copyCode": "Copiar código",
+      "copyKey": "Copiar chave",
+      "copied": "Copiado.",
+      "now": "Sincronizar agora",
+      "restore": "Restaurar em outro aparelho",
+      "revoke": "Revogar consentimento",
+      "soon": "Estes botões serão ativados em uma próxima versão."
+    },
+    "data": {
+      "title": "Dados",
+      "exportJson": "Exportar backup (JSON)",
+      "exportCsv": "Exportar registros (CSV)",
+      "import": "Importar backup",
+      "wipe": "Apagar todos os dados",
+      "warning": "O arquivo de backup contém suas anotações privadas e a chave de recuperação. Guarde-o em um lugar seguro.",
+      "csvHint": "O CSV traz as escalas do dia, o percentual do checklist e os minutos de movimento, sem anotações.",
+      "importTitle": "Importar backup?",
+      "importBody": "Isso substitui todos os dados atuais deste aparelho pelos do arquivo.",
+      "importSync": "Se o backup tiver consentimento válido, a sincronização será ligada e o histórico será reenviado.",
+      "importConfirm": "Substituir dados",
+      "imported": "Backup importado.",
+      "wipeTitle": "Apagar todos os dados?",
+      "wipeBody": "Hábitos, registros e configurações serão apagados deste aparelho. Esta ação não pode ser desfeita.",
+      "wipeRemote": "Os dados enviados ao servidor também serão apagados.",
+      "wipeConfirm": "Apagar tudo",
+      "remoteFailTitle": "Não foi possível apagar no servidor. Apagar só neste aparelho?",
+      "remoteFailBody": "Os dados no servidor continuam lá. Você pode tentar de novo mais tarde, com internet.",
+      "wipeLocalOnly": "Apagar só neste aparelho",
+      "syncUnavailable": "sincronização indisponível",
+      "cancel": "Cancelar"
+    },
+    "about": {
+      "title": "Sobre",
+      "version": "Versão {{version}}",
+      "repo": "Repositório no GitHub",
+      "check": "Verificar atualizações",
+      "checked": "Verificação concluída. Se houver versão nova, um aviso aparece.",
+      "unavailable": "Atualizações automáticas não estão disponíveis neste navegador."
+    },
+    "notices": {
+      "title": "Avisos"
+    }
+  },
+  "reminders": {
+    "title": "Lembretes",
+    "limitation": "Na web, os lembretes só aparecem com o app aberto.",
+    "denied": "As notificações estão bloqueadas neste navegador. Libere nas configurações do site para receber lembretes.",
+    "unsupported": "Este navegador não oferece notificações.",
+    "movement": "Movimento do dia",
+    "activeBreak": "Pausa ativa",
+    "water": "Água",
+    "bedtime": "Hora de dormir",
+    "time": "Horário de {{name}}",
+    "every": "Intervalo de {{name}}",
+    "from": "{{name}}: início",
+    "to": "{{name}}: fim",
+    "enable": "Ativar lembrete de {{name}}",
+    "notifications": {
+      "title": "NEXO Check",
+      "movement": "Que tal um movimento leve agora? No seu ritmo.",
+      "activeBreak": "Hora de uma pausa ativa: levante e alongue com suavidade.",
+      "water": "Um copo de água?",
+      "bedtime": "Hora de se preparar para dormir."
+    },
+    "minutes": "a cada {{n}} min"
   }
 }

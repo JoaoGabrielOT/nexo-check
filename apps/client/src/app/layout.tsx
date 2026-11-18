@@ -13,6 +13,7 @@ import { Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import { CONSENT_VERSION } from '@nexo/shared';
 import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
+import { useReminderScheduling } from '../features/settings/RemindersSection';
 import { PwaUpdateToast } from './PwaUpdateToast';
 import { useMediaQuery } from './useMediaQuery';
 
@@ -91,6 +92,7 @@ export function Layout() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const settings = useLiveQuery(getSettings, []);
+  useReminderScheduling(settings?.reminders);
   const headerRef = useRef<HTMLElement>(null);
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const inOnboarding = pathname.startsWith('/onboarding');

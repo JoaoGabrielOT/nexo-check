@@ -1,4 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { getSettings, updateSettings } from '../db';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -21,9 +31,48 @@ function syncThemeColor(theme: Theme | null) {
   }
 }
 
-// Estado só em memória; a persistência em `settings` vem com a camada de dados.
+// Espelho mínimo no localStorage: o tema vale já no primeiro render, sem esperar o IndexedDB
+// (o index.html faz o mesmo antes do React para não piscar claro). A fonte da verdade é `settings`.
+export const THEME_MIRROR_KEY = 'nexo-theme';
+
+export function readThemeMirror(): Theme | null {
+  try {
+    const v = localStorage.getItem(THEME_MIRROR_KEY);
+    return v === 'light' || v === 'dark' || v === 'system' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeThemeMirror(theme: Theme) {
+  try {
+    localStorage.setItem(THEME_MIRROR_KEY, theme);
+  } catch {
+    // armazenamento bloqueado: o tema continua valendo em `settings`
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system');
+  const [theme, setThemeState] = useState<Theme>(() => readThemeMirror() ?? 'system');
+  // Escolha feita antes de os settings carregarem vence o valor salvo.
+  const chosen = useRef(false);
+
+  useEffect(() => {
+    getSettings()
+      .then((s) => {
+        if (chosen.current) return;
+        setThemeState(s.theme);
+        writeThemeMirror(s.theme);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const setTheme = useCallback((next: Theme) => {
+    chosen.current = true;
+    setThemeState(next);
+    writeThemeMirror(next);
+    updateSettings({ theme: next }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -44,7 +93,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
   }, [theme]);
 
-  const value = useMemo(() => ({ theme, setTheme }), [theme]);
+  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

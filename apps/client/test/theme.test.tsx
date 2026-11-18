@@ -1,5 +1,5 @@
-import { act, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from '../src/app/theme';
 import { mediaControl } from './setup';
 
@@ -59,7 +59,8 @@ describe('useTheme com system', () => {
     expect(mediaControl.remove).toHaveBeenCalledWith('change', listener);
     mediaControl.remove.mockClear();
     unmount();
-    // em light não há listener; religa em system e confirma remoção no unmount
+    // em light não há listener; religa em system (sem o espelho) e confirma remoção no unmount
+    localStorage.clear();
     const second = render(
       <ThemeProvider>
         <Probe />
@@ -68,6 +69,40 @@ describe('useTheme com system', () => {
     const [l2] = [...mediaControl.listeners];
     second.unmount();
     expect(mediaControl.remove).toHaveBeenCalledWith('change', l2);
+  });
+});
+
+describe('persistência do tema', () => {
+  it('começa pelo espelho do localStorage, sem esperar o banco', () => {
+    localStorage.setItem('nexo-theme', 'dark');
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('dark');
+    expect(document.documentElement).toHaveClass('dark');
+  });
+
+  it('ignora espelho inválido e armazenamento bloqueado', () => {
+    localStorage.setItem('nexo-theme', 'roxo');
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('system');
+    cleanup();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('bloqueado');
+    });
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('system');
+    vi.restoreAllMocks();
   });
 });
 
