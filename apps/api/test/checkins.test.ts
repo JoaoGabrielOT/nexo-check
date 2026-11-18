@@ -80,6 +80,20 @@ describe('POST /v1/checkins', () => {
     expect(await prisma.checkin.count()).toBe(1);
   });
 
+  it('a data devolvida não muda com horário de fuso (03:00Z)', async () => {
+    await prisma.workshopSession.create({
+      data: {
+        workshop: 1,
+        date: new Date('2026-11-20T03:00:00.000Z'),
+        location: 'Sala 1',
+        code: 'DEF567',
+        expiresAt: new Date(Date.now() + HOUR),
+      },
+    });
+    const res = await post({ sessionCode: 'DEF567', clientId: 'c1' });
+    expect(res.json().date).toBe('2026-11-20');
+  });
+
   it('código inexistente devolve 404 invalid_code', async () => {
     const res = await post({ sessionCode: 'ZZZZZZ', clientId: 'c1' });
     expect(res.statusCode).toBe(404);

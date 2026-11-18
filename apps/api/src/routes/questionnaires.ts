@@ -4,7 +4,6 @@ import {
   questionnaireKind,
   questionnaireSubmit,
   scoreEducational,
-  stripTextAnswers,
   type Answers,
   type Question,
   type QuestionnaireDef,
@@ -44,6 +43,21 @@ function validateAnswers(def: QuestionnaireDef, given: Answers): string | null {
   return null;
 }
 
+/** Mantém só o que a definição atual reconhece e valida; texto livre nunca é guardado. */
+function sanitizeAnswers(def: QuestionnaireDef, given: Answers): Answers {
+  const byId = new Map(def.questions.map((q) => [q.id, q]));
+  return Object.fromEntries(
+    Object.entries(given).filter(([id, value]) => {
+      const q = byId.get(id);
+      return q !== undefined && q.type !== 'text' && checkValue(q, value) === null;
+    }),
+  );
+}
+
+const MAX_ANSWER_KEYS = 100;
+const MAX_KEY_LENGTH = 64;
+const MAX_VERSION = 1_000_000;
+
 const invalid = (message: string) => ({ error: 'invalid_request', message });
 
 export async function questionnaireRoutes(
@@ -59,8 +73,18 @@ export async function questionnaireRoutes(
 
     const kind = questionnaireKind.safeParse(body.kind);
     if (!kind.success) return reply.status(400).send(invalid('Questionário desconhecido.'));
-    const version = Number(body.version);
-    if (!Number.isInteger(version) || version < 1) {
+    const keys = Object.keys(body.answers);
+    if (keys.length > MAX_ANSWER_KEYS || keys.some((k) => k.length > MAX_KEY_LENGTH)) {
+      return reply.status(400).send(invalid('Respostas em excesso ou com chave longa demais.'));
+    }
+    const rawVersion = body.version;
+    const version =
+      typeof rawVersion === 'string'
+        ? /^\d+$/.test(rawVersion)
+          ? Number(rawVersion)
+          : NaN
+        : rawVersion;
+    if (!Number.isInteger(version) || version < 1 || version > MAX_VERSION) {
       return reply.status(400).send(invalid('Versão inválida.'));
     }
     const submittedAt = new Date(body.submittedAt);
@@ -80,9 +104,16 @@ export async function questionnaireRoutes(
     const clientId = body.id;
     const where = { participantId_clientId: { participantId, clientId } };
     const stored = await prisma.questionnaireResponse.findUnique({ where });
-    if (stored) return reply.status(200).send({ score: stored.score });
+    if (stored) {
+      if (stored.kind !== kind.data) {
+        return reply
+          .status(409)
+          .send({ error: 'id_conflict', message: 'Este id já foi usado por outro questionário.' });
+      }
+      return reply.status(200).send({ score: stored.score });
+    }
 
-    const answers = stripTextAnswers(def, body.answers);
+    const answers = sanitizeAnswers(def, body.answers);
     // A nota vem sempre do servidor, e só para a versão que ele conhece.
     const score =
       kind.data === 'educativo' && current ? scoreEducational(def, answers).ratio : null;

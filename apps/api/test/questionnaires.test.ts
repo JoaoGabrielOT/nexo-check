@@ -114,13 +114,41 @@ describe('POST /v1/questionnaires', () => {
     expect(await prisma.questionnaireResponse.count()).toBe(1);
   });
 
-  it('versão diferente é aceita e guardada, sem nota', async () => {
-    const res = await post(body({ version: edu.version + 1, answers: { qualquer: 'x' } }));
+  it('versão diferente é aceita, sem nota, e descarta o que a definição atual não reconhece', async () => {
+    const valid = { [scaleQ.id]: 3 };
+    const res = await post({
+      ...inicial({ ...valid, qualquer: 'x', [numberQ.id]: 'texto', [textQ.id]: 'L'.repeat(500) }),
+      version: ini.version + 1,
+    });
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ score: null });
     const row = await prisma.questionnaireResponse.findFirstOrThrow();
-    expect(row.version).toBe(edu.version + 1);
-    expect(row.answers).toEqual({ qualquer: 'x' });
+    expect(row.version).toBe(ini.version + 1);
+    expect(row.answers).toEqual(valid);
+  });
+
+  it('nota 0.8 com 8 de 10 certas', async () => {
+    const res = await post(body({ id: 'q-8', answers: eduAnswers(8) }));
+    expect(res.json()).toEqual({ score: 0.8 });
+  });
+
+  it('rejeita versão fora de 1..1000000 e respostas em excesso', async () => {
+    for (const version of [0, 2 ** 31, 1_000_001, 'abc', '1.5', -1]) {
+      expect((await post(body({ version }))).statusCode).toBe(400);
+    }
+    expect((await post(body({ version: '1' }))).statusCode).toBe(201);
+    const many = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`k${i}`, 1]));
+    expect((await post(body({ id: 'q-m', answers: many }))).statusCode).toBe(400);
+    expect((await post(body({ id: 'q-l', answers: { ['k'.repeat(65)]: 1 } }))).statusCode).toBe(
+      400,
+    );
+  });
+
+  it('reusar o id com outro kind devolve 409 id_conflict', async () => {
+    expect((await post(body())).statusCode).toBe(201);
+    const res = await post(inicial({ [scaleQ.id]: 3 }, 'q-1'));
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toBe('id_conflict');
   });
 
   it('versão diferente ainda remove texto de perguntas conhecidas', async () => {
