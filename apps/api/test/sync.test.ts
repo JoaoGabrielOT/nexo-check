@@ -1,7 +1,13 @@
-import { generateRecoveryKey, MAX_CLOCK_SKEW_MS } from '@nexo/shared';
+import {
+  generateRecoveryKey,
+  MAX_CLOCK_SKEW_MS,
+  syncEntityName,
+  syncPushRequest,
+} from '@nexo/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { PrismaClient } from '../src/db';
+import { syncPushSchema } from '../src/routes/sync';
 import { hashKey } from '../src/plugins/participant-auth';
 import { makeTestApp } from './helpers';
 
@@ -243,6 +249,69 @@ describe('sincronização', () => {
       })
     ).map((r) => r.serverSeq);
     expect(seqs.every((s, i) => i === 0 || s > (seqs[i - 1] as bigint))).toBe(true);
+  });
+
+  it('o schema do servidor aceita toda entidade que o shared aceita (e note de texto no dailyLog)', () => {
+    const samples: Record<string, unknown> = {
+      habit: habit('h1'),
+      habitEntry: {
+        entity: 'habitEntry',
+        entityId: 'e1',
+        updatedAt: T1,
+        deletedAt: null,
+        payload: {
+          id: 'e1',
+          updatedAt: T1,
+          deletedAt: null,
+          habitId: 'h1',
+          date: '2026-11-10',
+          value: 1,
+          blocks: [],
+          targetSnapshot: 1,
+          targetMaxSnapshot: null,
+        },
+      },
+      dailyLog: dailyLog('d1', null),
+    };
+    for (const name of syncEntityName.options) {
+      const change = samples[name];
+      expect(change, `amostra para ${name}`).toBeDefined();
+      expect(syncPushRequest.safeParse({ changes: [change] }).success, `shared: ${name}`).toBe(
+        true,
+      );
+      expect(syncPushSchema.safeParse({ changes: [change] }).success, `servidor: ${name}`).toBe(
+        true,
+      );
+    }
+    expect(syncPushSchema.safeParse({ changes: [dailyLog('d1', 'texto')] }).success).toBe(true);
+  });
+
+  it('push espera o lock do participante e depois aparece no pull (sem lacuna de seq)', async () => {
+    const { id } = await prisma.participant.findUniqueOrThrow({ where: { code: 'NEXO-AB23' } });
+    const before = (await push([habit('h0')])).json().cursor as string;
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let locked!: () => void;
+    const lockTaken = new Promise<void>((r) => (locked = r));
+    const holder = prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))`;
+      locked();
+      await held;
+    });
+    await lockTaken;
+    let done = false;
+    const pending = push([habit('h1'), habit('h2')]).then((r) => {
+      done = true;
+      return r;
+    });
+    await new Promise((r) => setTimeout(r, 200));
+    expect(done).toBe(false);
+    release();
+    await holder;
+    const res = await pending;
+    expect(res.json().applied).toBe(2);
+    const got = (await pull(before)).json();
+    expect(got.changes).toHaveLength(2);
   });
 
   it('since inválido devolve 400', async () => {

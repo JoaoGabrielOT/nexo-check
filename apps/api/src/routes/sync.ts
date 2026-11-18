@@ -13,20 +13,15 @@ import { requireParticipant } from '../plugins/participant-auth';
 const PULL_LIMIT = 1000;
 const BODY_LIMIT = 2 * 1024 * 1024;
 
-// Derivado de `syncChangeSchema` (uma nova entidade entra sozinha); só o `dailyLog` troca o
-// payload por `dailyLogSchema`, que aceita `note` de texto: o servidor o descarta (defesa em
-// profundidade) em vez de depender só do cliente.
-const [habitChange, habitEntryChange, dailyLogChange] = syncChangeSchema.options;
-const pushRequest = z.object({
-  changes: z
-    .array(
-      z.discriminatedUnion('entity', [
-        habitChange,
-        habitEntryChange,
-        dailyLogChange.extend({ payload: dailyLogSchema }),
-      ]),
-    )
-    .max(500),
+// Derivado de `syncChangeSchema`: todas as opções são mantidas (uma entidade nova entra sozinha,
+// com o schema do shared) e só a do `dailyLog`, escolhida pelo literal, troca o payload por
+// `dailyLogSchema`, que aceita `note` de texto: o servidor o descarta (defesa em profundidade)
+// em vez de depender só do cliente.
+const changeOptions = syncChangeSchema.options.map((o) =>
+  o.shape.entity.value === 'dailyLog' ? o.extend({ payload: dailyLogSchema }) : o,
+) as unknown as typeof syncChangeSchema.options;
+export const syncPushSchema = z.object({
+  changes: z.array(z.discriminatedUnion('entity', changeOptions)).max(500),
 });
 
 const cursorSchema = z.string().regex(/^\d{1,18}$/);
@@ -48,7 +43,7 @@ export async function syncRoutes(
 
   app.post('/sync', { preHandler: auth, bodyLimit: BODY_LIMIT }, async (req, reply) => {
     const id = participantId(req);
-    const { changes } = pushRequest.parse(req.body);
+    const { changes } = syncPushSchema.parse(req.body);
     const limit = Date.now() + MAX_CLOCK_SKEW_MS;
 
     for (const c of changes) {
