@@ -54,43 +54,47 @@ function writeThemeMirror(theme: Theme) {
   }
 }
 
+// Cada escolha recebe um número; só o resultado da gravação mais recente conta.
+let lastWriteId = 0;
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => readThemeMirror() ?? 'system');
+  const [followed, setFollowed] = useState<Theme>(() => readThemeMirror() ?? 'system');
+  // Escolha da pessoa ainda não confirmada em `settings`: enquanto existir, vale no lugar de `stored`.
+  const [pending, setPending] = useState<{ value: Theme; id: number } | null>(null);
   // `settings.theme` é a fonte da verdade: importar um backup ou apagar tudo muda o tema também.
   const stored = useLiveQuery(getSettings, [])?.theme;
-
-  // Escolha da pessoa ainda não confirmada em `settings`: emissões antigas da consulta não a revertem.
-  const [pending, setPending] = useState<Theme | null>(null);
-  // Ajuste durante a renderização (sem efeito): o estado segue `stored` assim que ele muda.
+  // Ajuste durante a renderização (sem efeito): `followed` acompanha `stored` quando ele muda.
   const [seen, setSeen] = useState<Theme | undefined>(undefined);
   if (stored !== undefined && stored !== seen) {
     setSeen(stored);
-    if (pending === null || stored === pending) setThemeState(stored);
-    if (stored === pending) setPending(null);
+    setFollowed(stored);
   }
-  useEffect(() => {
-    if (stored !== undefined && stored === theme) writeThemeMirror(stored);
-  }, [stored, theme]);
+  const theme = pending ? pending.value : followed;
 
-  const setTheme = useCallback(
-    (next: Theme) => {
-      setThemeState(next);
-      setPending(next === stored ? null : next);
-      writeThemeMirror(next);
-      updateSettings({ theme: next }).catch(() => {
-        // Não gravou: volta ao que está salvo e avisa.
-        toast(i18n.t('errors.generic'));
-        getSettings()
-          .then((s) => {
-            setPending(null);
-            setThemeState(s.theme);
-            writeThemeMirror(s.theme);
-          })
-          .catch(() => undefined);
-      });
-    },
-    [stored],
-  );
+  useEffect(() => {
+    writeThemeMirror(theme);
+  }, [theme]);
+
+  const setTheme = useCallback((next: Theme) => {
+    const id = ++lastWriteId;
+    setPending({ value: next, id });
+    const settle = (resync: boolean) => {
+      if (id !== lastWriteId) return; // uma escolha mais nova já assumiu
+      setPending(null);
+      if (!resync) return;
+      toast(i18n.t('errors.generic'));
+      // Não gravou: volta ao que está salvo; se nem isso for possível, fica no último valor conhecido.
+      getSettings()
+        .then((s) => {
+          if (id === lastWriteId) setFollowed(s.theme);
+        })
+        .catch(() => undefined);
+    };
+    updateSettings({ theme: next }).then(
+      () => settle(false),
+      () => settle(true),
+    );
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

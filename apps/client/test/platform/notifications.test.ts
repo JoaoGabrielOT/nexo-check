@@ -15,6 +15,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   webNotifications.cancelAll();
+  vi.restoreAllMocks();
   vi.useRealTimers();
   setNowForTests(null);
 });
@@ -62,6 +63,16 @@ describe('webNotifications.schedule', () => {
     vi.advanceTimersByTime(24 * 60 * 60 * 1000);
     expect(vi.getTimerCount()).toBe(1);
     vi.unstubAllGlobals();
+  });
+
+  it('everyMinutes NaN (backup editado) não agenda timer nem trava', () => {
+    const spy = vi.spyOn(globalThis, 'setTimeout');
+    webNotifications.schedule({
+      ...DEFAULT_REMINDERS,
+      water: { enabled: true, everyMinutes: Number.NaN, from: '08:00', to: '20:00' },
+    });
+    expect(spy).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('intervalo fora de 30-240 é limitado ao agendar', () => {

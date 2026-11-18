@@ -88,7 +88,9 @@ function nextFor(kind: Kind, rules: ReminderSettings, at: Date): Date | null {
     case 'activeBreak':
     case 'water': {
       const r = rules[kind];
-      return r.enabled && HHMM.test(r.from) && HHMM.test(r.to) ? nextIntervalTime(r, at) : null;
+      return r.enabled && Number.isFinite(r.everyMinutes) && HHMM.test(r.from) && HHMM.test(r.to)
+        ? nextIntervalTime(r, at)
+        : null;
     }
   }
 }
