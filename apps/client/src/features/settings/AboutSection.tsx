@@ -9,12 +9,12 @@ export function AboutSection() {
   const { t } = useTranslation();
 
   const checkUpdates = async () => {
-    const registration = await navigator.serviceWorker?.getRegistration();
-    if (!registration) {
-      toast(t('settings.about.unavailable'));
-      return;
-    }
     try {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      if (!registration) {
+        toast(t('settings.about.unavailable'));
+        return;
+      }
       await registration.update();
       toast(t('settings.about.checked'));
     } catch {

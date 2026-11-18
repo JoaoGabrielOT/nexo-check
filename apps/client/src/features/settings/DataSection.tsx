@@ -38,7 +38,8 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
   const remove: () => Promise<void> =
     deleteRemote ??
     (async () => {
-      if (registered) throw new Error(t('settings.data.syncUnavailable'));
+      if (!(await getSettings()).participant?.registered) return;
+      throw new Error(t('settings.data.syncUnavailable'));
     });
 
   const stamp = () => toLocalDateKey(now());
@@ -107,7 +108,8 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
   };
 
   const confirmWipe = async () => {
-    if (registered) {
+    // Lê no momento do clique: o valor da consulta ao vivo pode ainda não ter carregado.
+    if ((await getSettings()).participant?.registered) {
       try {
         await remove();
       } catch {

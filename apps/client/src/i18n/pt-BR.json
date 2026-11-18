@@ -302,7 +302,7 @@
       "import": "Importar backup",
       "wipe": "Apagar todos os dados",
       "warning": "O arquivo de backup contém suas anotações privadas e a chave de recuperação. Guarde-o em um lugar seguro.",
-      "csvHint": "O CSV traz as escalas do dia, o percentual do checklist e os minutos de movimento, sem anotações.",
+      "csvHint": "O CSV traz as escalas do dia, o percentual do checklist e os minutos de movimento, sem anotações. O percentual usa os hábitos ativos hoje.",
       "importTitle": "Importar backup?",
       "importBody": "Isso substitui todos os dados atuais deste aparelho pelos do arquivo.",
       "importSync": "Se o backup tiver consentimento válido, a sincronização será ligada e o histórico será reenviado.",
@@ -351,6 +351,7 @@
       "water": "Um copo de água?",
       "bedtime": "Hora de se preparar para dormir."
     },
-    "minutes": "a cada {{n}} min"
+    "minutes": "a cada {{n}} min",
+    "windowError": "O horário final precisa ser depois do inicial. A alteração não foi salva."
   }
 }

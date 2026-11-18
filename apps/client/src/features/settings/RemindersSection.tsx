@@ -28,17 +28,27 @@ export function RemindersSection() {
   const { t } = useTranslation();
   const settings = useLiveQuery(getSettings, []);
   const [permission, setPermission] = useState(permissionState);
+  const [windowError, setWindowError] = useState<Kind | null>(null);
   if (!settings) return null;
   const { reminders } = settings;
 
-  const save = (next: ReminderSettings) =>
-    updateSettings({ reminders: next }).catch(() => void toast(t('errors.generic')));
+  // Lê as configurações no momento da escrita: dois toques seguidos não perdem o primeiro.
   const change = <K extends Kind>(kind: K, patch: Partial<ReminderSettings[K]>) =>
-    save({ ...reminders, [kind]: { ...reminders[kind], ...patch } });
+    getSettings()
+      .then((current) => {
+        const rule = { ...current.reminders[kind], ...patch };
+        if ('to' in rule && 'from' in rule && rule.to <= rule.from) {
+          setWindowError(kind);
+          return;
+        }
+        setWindowError(null);
+        return updateSettings({ reminders: { ...current.reminders, [kind]: rule } });
+      })
+      .catch(() => void toast(t('errors.generic')));
 
-  // O pedido de permissão acontece ao ligar o primeiro lembrete (gesto da pessoa).
+  // O pedido de permissão acontece ao ligar um lembrete (gesto da pessoa), enquanto ainda não foi decidido.
   const toggle = async (kind: Kind, enabled: boolean) => {
-    if (enabled && !KINDS.some((k) => reminders[k].enabled)) {
+    if (enabled && permissionState() === 'default') {
       await getNotificationAdapter().requestPermission();
       setPermission(permissionState());
     }
@@ -75,6 +85,11 @@ export function RemindersSection() {
                   onCheckedChange={(enabled) => void toggle(kind, enabled)}
                 />
               </div>
+              {windowError === kind && (
+                <p role="alert" className="text-sm font-bold">
+                  {t('reminders.windowError')}
+                </p>
+              )}
               {rule.enabled && (
                 <div className="flex flex-wrap items-center gap-3">
                   {'time' in rule ? (

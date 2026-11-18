@@ -38,7 +38,8 @@ export function nextIntervalTime(
 ): Date {
   const start = toMinutes(rule.from);
   const end = toMinutes(rule.to);
-  const every = Math.max(1, rule.everyMinutes);
+  // Limita o intervalo também aqui: um backup importado pode trazer valores fora de 30-240.
+  const every = Math.min(240, Math.max(30, rule.everyMinutes));
   for (let m = start; m <= end; m += every) {
     const candidate = atMinutes(at, m);
     if (candidate > at) return candidate;
@@ -52,13 +53,27 @@ export function permissionState(): NotificationPermission | 'unsupported' {
 
 function notify(kind: Kind): void {
   if (permissionState() !== 'granted') return;
-  new Notification(i18n.t('reminders.notifications.title'), {
-    body: i18n.t(`reminders.notifications.${kind}`),
-    icon: '/icons/icon-192.png',
-  });
+  const title = i18n.t('reminders.notifications.title');
+  const options = { body: i18n.t(`reminders.notifications.${kind}`), icon: '/icons/icon-192.png' };
+  // `new Notification` lança "Illegal constructor" no Chrome para Android; lá só o service worker exibe.
+  const fallback = () => {
+    try {
+      new Notification(title, options);
+    } catch {
+      // sem como exibir neste navegador: o lembrete é só perdido
+    }
+  };
+  const sw = typeof navigator === 'undefined' ? undefined : navigator.serviceWorker;
+  if (!sw) return fallback();
+  sw.getRegistration()
+    .then((registration) =>
+      registration ? registration.showNotification(title, options) : fallback(),
+    )
+    .catch(fallback);
 }
 
-let timers: ReturnType<typeof setTimeout>[] = [];
+// Um timer por lembrete: o que já disparou é substituído, nunca acumulado.
+const timers = new Map<Kind, ReturnType<typeof setTimeout>>();
 
 function nextFor(kind: Kind, rules: ReminderSettings, at: Date): Date | null {
   switch (kind) {
@@ -81,10 +96,11 @@ function arm(kind: Kind, rules: ReminderSettings): void {
   const next = nextFor(kind, rules, new Date(at.getTime() + 1000));
   if (!next) return;
   const timer = setTimeout(() => {
-    notify(kind);
+    // Reagenda antes de notificar: uma falha ao exibir não pode quebrar a cadeia.
     arm(kind, rules);
+    notify(kind);
   }, next.getTime() - at.getTime());
-  timers.push(timer);
+  timers.set(kind, timer);
 }
 
 /** Na web os lembretes só disparam com a página aberta; os timers morrem junto com ela. */
@@ -100,8 +116,8 @@ export const webNotifications: NotificationAdapter = {
     for (const kind of ['movement', 'activeBreak', 'water', 'bedtime'] as const) arm(kind, rules);
   },
   cancelAll() {
-    for (const t of timers) clearTimeout(t);
-    timers = [];
+    for (const t of timers.values()) clearTimeout(t);
+    timers.clear();
   },
 };
 

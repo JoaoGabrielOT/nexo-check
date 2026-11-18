@@ -1,10 +1,10 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -54,21 +54,20 @@ function writeThemeMirror(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => readThemeMirror() ?? 'system');
-  // Escolha feita antes de os settings carregarem vence o valor salvo.
-  const chosen = useRef(false);
+  // `settings.theme` é a fonte da verdade: importar um backup ou apagar tudo muda o tema também.
+  const stored = useLiveQuery(getSettings, [])?.theme;
 
+  // Ajuste durante a renderização (sem efeito): o estado segue `stored` assim que ele muda.
+  const [seen, setSeen] = useState<Theme | undefined>(undefined);
+  if (stored !== undefined && stored !== seen) {
+    setSeen(stored);
+    setThemeState(stored);
+  }
   useEffect(() => {
-    getSettings()
-      .then((s) => {
-        if (chosen.current) return;
-        setThemeState(s.theme);
-        writeThemeMirror(s.theme);
-      })
-      .catch(() => undefined);
-  }, []);
+    if (stored !== undefined) writeThemeMirror(stored);
+  }, [stored]);
 
   const setTheme = useCallback((next: Theme) => {
-    chosen.current = true;
     setThemeState(next);
     writeThemeMirror(next);
     updateSettings({ theme: next }).catch(() => undefined);

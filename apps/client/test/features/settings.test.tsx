@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -237,6 +237,45 @@ describe('dados', () => {
       expect(await screen.findByText('tela de boas-vindas')).toBeInTheDocument();
       expect(deleteRemote).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('tema segue as configurações', () => {
+  afterEach(() => document.documentElement.classList.remove('dark'));
+
+  it('importar backup com tema escuro aplica a classe e atualiza o espelho; apagar volta a system', async () => {
+    const user = userEvent.setup();
+    await updateSettings({ theme: 'dark' });
+    const backup = await exportAll();
+    await updateSettings({ theme: 'light' });
+    vi.mocked(files.pickFile).mockResolvedValue(JSON.stringify(backup));
+    renderConfig();
+    await waitFor(() => expect(localStorage.getItem('nexo-theme')).toBe('light'));
+    await user.click(await screen.findByRole('button', { name: 'Importar backup' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Substituir dados' }),
+    );
+    await waitFor(() => expect(document.documentElement).toHaveClass('dark'));
+    expect(localStorage.getItem('nexo-theme')).toBe('dark');
+    await user.click(screen.getByRole('button', { name: 'Apagar todos os dados' }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Apagar tudo' }),
+    );
+    await waitFor(() => expect(localStorage.getItem('nexo-theme')).toBe('system'));
+  });
+});
+
+describe('lembretes', () => {
+  it('janela com fim antes do início mostra erro e não salva', async () => {
+    const user = userEvent.setup();
+    renderConfig();
+    await user.click(await screen.findByRole('switch', { name: 'Ativar lembrete de Água' }));
+    const to = await screen.findByLabelText('Água: fim');
+    fireEvent.change(to, { target: { value: '07:00' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'O horário final precisa ser depois',
+    );
+    expect((await getSettings()).reminders.water.to).toBe('20:00');
   });
 });
 

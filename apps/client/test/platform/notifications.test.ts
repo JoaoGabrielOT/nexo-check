@@ -44,6 +44,31 @@ describe('webNotifications.schedule', () => {
     vi.unstubAllGlobals();
   });
 
+  it('Notification que lança não quebra a cadeia: o timer do lembrete é reagendado', () => {
+    vi.stubGlobal(
+      'Notification',
+      Object.assign(
+        vi.fn(() => {
+          throw new TypeError('Illegal constructor');
+        }),
+        { permission: 'granted' },
+      ),
+    );
+    webNotifications.schedule({ ...DEFAULT_REMINDERS, movement: { enabled: true, time: '08:00' } });
+    setNowForTests(() => at(8, 0));
+    expect(() => vi.advanceTimersByTime(60 * 60 * 1000)).not.toThrow();
+    expect(vi.getTimerCount()).toBe(1);
+    setNowForTests(() => new Date(2026, 10, 19, 8, 0));
+    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('intervalo fora de 30-240 é limitado ao agendar', () => {
+    const rule = { everyMinutes: 1, from: '08:00', to: '18:00' };
+    expect(nextIntervalTime(rule, at(8, 5))).toEqual(at(8, 30));
+  });
+
   it('lembretes desligados não agendam nada', () => {
     webNotifications.schedule(DEFAULT_REMINDERS);
     expect(vi.getTimerCount()).toBe(0);
