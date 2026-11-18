@@ -13,8 +13,8 @@ const sessionCode = z
 
 export const registerRequest = z.object({
   code: z.string().min(1),
-  key: z.string().min(1),
-  consentVersion: z.string().min(1),
+  key: z.string().min(1).max(128),
+  consentVersion: z.number().int().min(1),
 });
 
 export const syncPushRequest = z.object({ changes: z.array(syncChangeSchema).max(500) });
