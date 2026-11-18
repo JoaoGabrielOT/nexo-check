@@ -127,7 +127,9 @@
   },
   "onboarding": {
     "welcomeTitle": "Boas-vindas",
-    "welcomeIntro": "O NEXO Check é um checklist diário de hábitos do projeto NEXO em Movimento. Antes de começar, leia os avisos abaixo.",
+    "welcomeIntro": "Um checklist diário de hábitos do projeto NEXO em Movimento, para acompanhar movimento, pausas, respiração, sono e água no seu ritmo.",
+    "beforeStart": "Antes de começar",
+    "step": "Passo {{n}} de {{total}}",
     "next": "Continuar",
     "consentTitle": "Participação na pesquisa",
     "consentIntro": "Você pode usar o app sem enviar nenhum dado. Se quiser participar da pesquisa, usamos seus registros de forma anônima e agregada, apenas para avaliar o projeto acadêmico. Você pode mudar de ideia depois, nas configurações.",
@@ -215,7 +217,7 @@
     "achievementsNote": "Sem ranking: as conquistas são só para você acompanhar a sua constância."
   },
   "learn": {
-    "evidence": "Evidências",
+    "eyebrow": "Neurociência do exercício",
     "mechanisms": "Mecanismos",
     "guide": "Guia digital",
     "references": "Referências",

@@ -80,6 +80,23 @@ describe('onboarding', () => {
     expect(await outboxCount()).toBe(0);
   });
 
+  it('indica o passo atual (1, 2 e 3 de 3) e destaca o código em fonte monoespaçada', async () => {
+    const user = userEvent.setup();
+    renderAt('/');
+    expect(await screen.findByText('Passo 1 de 3')).toBeInTheDocument();
+    expect(screen.getByText(/não substitui acompanhamento/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText('Passo 2 de 3')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Concordo e quero participar da pesquisa' }),
+    );
+    expect(await screen.findByText('Passo 3 de 3')).toBeInTheDocument();
+    const s = await getSettings();
+    const code = screen.getByText(s.participant!.code);
+    expect(code.tagName).toBe('CODE');
+    expect(code).toHaveClass('font-mono', 'tabular-nums');
+  });
+
   it('exibe o texto completo do consentimento sob demanda', async () => {
     const user = userEvent.setup();
     renderAt('/');
@@ -108,6 +125,14 @@ describe('reconsentimento', () => {
     expect(s.consent?.version).toBe(CONSENT_VERSION);
     expect(s.consent?.granted).toBe(true);
     expect(s.participant).toEqual(participant);
+  });
+
+  it('reconsentimento é uma tela só, sem indicador de passos', async () => {
+    renderAt('/');
+    expect(
+      await screen.findByRole('button', { name: 'Concordo e quero participar da pesquisa' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Passo \d de 3/)).toBeNull();
   });
 
   it('recusar zera o consentimento', async () => {
