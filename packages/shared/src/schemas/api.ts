@@ -28,6 +28,7 @@ export const syncPushResponse = z.object({ applied: z.number().int(), cursor: z.
 export const syncPullResponse = z.object({
   changes: z.array(syncChangeSchema),
   cursor: z.string(),
+  hasMore: z.boolean(),
 });
 
 export const questionnaireSubmit = z.object({

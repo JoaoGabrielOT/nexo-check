@@ -7,6 +7,7 @@ import type { PrismaClient } from './db';
 import type { Env } from './env';
 import { healthRoutes } from './routes/health';
 import { participantRoutes } from './routes/participants';
+import { syncRoutes } from './routes/sync';
 
 declare const __APP_VERSION__: string | undefined;
 
@@ -94,6 +95,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     prisma,
     registerLimitMax: opts.registerLimitMax ?? 10,
   });
+  await app.register(syncRoutes, { prefix: '/v1', prisma });
   // Demais rotas de negócio entram em `/v1` nas próximas tarefas.
 
   return app;

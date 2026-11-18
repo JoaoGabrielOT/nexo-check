@@ -28,8 +28,8 @@ model SyncRecord {
   entity        String
   entityId      String    @map("entity_id")
   payload       Json
-  updatedAt     DateTime  @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  updatedAt     DateTime  @map("updated_at") @db.Timestamptz(3)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(3)
   // Sequência dedicada: a Task 17 reatribui nextval('sync_server_seq') a cada atualização efetiva.
   serverSeq     BigInt    @unique @default(dbgenerated("nextval('sync_server_seq')")) @map("server_seq")
 
