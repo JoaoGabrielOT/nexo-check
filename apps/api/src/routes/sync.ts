@@ -1,9 +1,8 @@
 import {
   dailyLogSchema,
-  habitEntrySchema,
-  habitSchema,
   MAX_CLOCK_SKEW_MS,
   stripPrivateFields,
+  syncChangeSchema,
   type SyncEntityName,
 } from '@nexo/shared';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -14,18 +13,17 @@ import { requireParticipant } from '../plugins/participant-auth';
 const PULL_LIMIT = 1000;
 const BODY_LIMIT = 2 * 1024 * 1024;
 
-const iso = z.iso.datetime();
-const base = { entityId: z.string().min(1), updatedAt: iso, deletedAt: iso.nullable() };
-
-// Mesmo formato de `syncPushRequest`, mas o `dailyLog` aceita `note` de texto: o servidor o
-// descarta (defesa em profundidade) em vez de depender só do cliente.
+// Derivado de `syncChangeSchema` (uma nova entidade entra sozinha); só o `dailyLog` troca o
+// payload por `dailyLogSchema`, que aceita `note` de texto: o servidor o descarta (defesa em
+// profundidade) em vez de depender só do cliente.
+const [habitChange, habitEntryChange, dailyLogChange] = syncChangeSchema.options;
 const pushRequest = z.object({
   changes: z
     .array(
       z.discriminatedUnion('entity', [
-        z.object({ ...base, entity: z.literal('habit'), payload: habitSchema }),
-        z.object({ ...base, entity: z.literal('habitEntry'), payload: habitEntrySchema }),
-        z.object({ ...base, entity: z.literal('dailyLog'), payload: dailyLogSchema }),
+        habitChange,
+        habitEntryChange,
+        dailyLogChange.extend({ payload: dailyLogSchema }),
       ]),
     )
     .max(500),
@@ -47,14 +45,6 @@ export async function syncRoutes(
 ): Promise<void> {
   const { prisma } = opts;
   const auth = requireParticipant(prisma);
-
-  const maxSeq = async (id: string): Promise<string> => {
-    const row = await prisma.syncRecord.aggregate({
-      where: { participantId: id },
-      _max: { serverSeq: true },
-    });
-    return (row._max.serverSeq ?? 0n).toString();
-  };
 
   app.post('/sync', { preHandler: auth, bodyLimit: BODY_LIMIT }, async (req, reply) => {
     const id = participantId(req);
@@ -80,20 +70,25 @@ export async function syncRoutes(
       }
     }
 
-    const applied = await prisma.$transaction(async (tx) => {
-      let count = 0;
-      for (const c of changes) {
-        const updatedAt = new Date(c.updatedAt);
-        const deletedAt = c.deletedAt === null ? null : new Date(c.deletedAt);
-        const entity: SyncEntityName = c.entity;
-        const stored = {
-          ...stripPrivateFields(entity, c.payload as never),
-          updatedAt: updatedAt.toISOString(),
-          deletedAt: deletedAt === null ? null : deletedAt.toISOString(),
-        };
-        // Um único comando: só o vencedor do LWW (updatedAt estritamente maior) escreve e recebe
-        // novo server_seq; empate ou mais antigo não devolve linha.
-        const rows = await tx.$queryRaw<{ server_seq: bigint }[]>`
+    // O lock por participante serializa os pushes: os server_seq são atribuídos depois dele, então
+    // um pull do mesmo participante nunca vê um seq menor commitado depois de um maior. O
+    // `cursor` do POST é só informativo: o cliente avança o cursor de pull apenas pelo GET.
+    const { applied, cursor } = await prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))`;
+        let count = 0;
+        for (const c of changes) {
+          const updatedAt = new Date(c.updatedAt);
+          const deletedAt = c.deletedAt === null ? null : new Date(c.deletedAt);
+          const entity: SyncEntityName = c.entity;
+          const stored = {
+            ...stripPrivateFields(entity, c.payload as never),
+            updatedAt: updatedAt.toISOString(),
+            deletedAt: deletedAt === null ? null : deletedAt.toISOString(),
+          };
+          // Um único comando: só o vencedor do LWW (updatedAt estritamente maior) escreve e recebe
+          // novo server_seq; empate ou mais antigo não devolve linha.
+          const rows = await tx.$queryRaw<{ server_seq: bigint }[]>`
           INSERT INTO sync_records
             (id, participant_id, entity, entity_id, payload, updated_at, deleted_at, server_seq)
           VALUES
@@ -107,12 +102,18 @@ export async function syncRoutes(
             server_seq = nextval('sync_server_seq')
           WHERE sync_records.updated_at < EXCLUDED.updated_at
           RETURNING server_seq`;
-        count += rows.length;
-      }
-      return count;
-    });
+          count += rows.length;
+        }
+        const row = await tx.syncRecord.aggregate({
+          where: { participantId: id },
+          _max: { serverSeq: true },
+        });
+        return { applied: count, cursor: (row._max.serverSeq ?? 0n).toString() };
+      },
+      { timeout: 30_000, maxWait: 5_000 },
+    );
 
-    return { applied, cursor: await maxSeq(id) };
+    return { applied, cursor };
   });
 
   app.get('/sync', { preHandler: auth }, async (req) => {

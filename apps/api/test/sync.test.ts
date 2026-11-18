@@ -219,6 +219,32 @@ describe('sincronização', () => {
     expect((await pull('0', headersB)).json().changes).toHaveLength(1);
   });
 
+  it('pushes concorrentes da mesma entidade: vence o mais novo e ambos dão 200', async () => {
+    const [a, b] = await Promise.all([
+      push([habit('h1', T2, 'Novo')]),
+      push([habit('h1', T1, 'Velho')]),
+    ]);
+    expect(a.statusCode).toBe(200);
+    expect(b.statusCode).toBe(200);
+    const rows = (await pull('0')).json().changes;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].payload.name).toBe('Novo');
+  });
+
+  it('pushes concorrentes de entidades diferentes: pull devolve tudo com serverSeq crescente', async () => {
+    const batches = Array.from({ length: 6 }, (_, i) => [habit(`a${i}`), habit(`b${i}`)]);
+    const results = await Promise.all(batches.map((b) => push(b)));
+    expect(results.every((r) => r.statusCode === 200)).toBe(true);
+    expect((await pull('0')).json().changes).toHaveLength(12);
+    const seqs = (
+      await prisma.syncRecord.findMany({
+        orderBy: { serverSeq: 'asc' },
+        select: { serverSeq: true },
+      })
+    ).map((r) => r.serverSeq);
+    expect(seqs.every((s, i) => i === 0 || s > (seqs[i - 1] as bigint))).toBe(true);
+  });
+
   it('since inválido devolve 400', async () => {
     expect((await pull('abc')).statusCode).toBe(400);
     expect((await pull('-1')).statusCode).toBe(400);
