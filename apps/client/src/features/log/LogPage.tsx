@@ -1,12 +1,12 @@
 import { ChevronDown, Sprout } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { lastNDateKeys } from '@nexo/shared';
 import type { Scale } from '@nexo/shared';
 import { Button, PageHeader, ScalePills, Tile, toast } from '@nexo/ui';
 import type { TileTone } from '@nexo/ui';
 import { getDailyLog, saveDailyLog } from '../../db';
-import { formatLongDate } from '../today/TodayPage';
+import { formatLongDate } from '../../lib/dates';
 import { useToday } from '../today/useToday';
 import { getAfterSaveMessage } from './afterSave';
 
@@ -44,6 +44,11 @@ export function LogPage() {
   const [note, setNote] = useState('');
   const [loadedDate, setLoadedDate] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Dia em exibição agora: o save confere depois do await, para não mostrar a frase no dia errado.
+  const dateRef = useRef(date);
+  useEffect(() => {
+    dateRef.current = date;
+  }, [date]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +91,9 @@ export function LogPage() {
         note: note.trim() === '' ? null : note,
       });
       toast(t('log.saved'));
-      setMessage(t(getAfterSaveMessage({ stress, mood, energy, sleepQuality })));
+      if (dateRef.current === date) {
+        setMessage(t(getAfterSaveMessage({ stress, mood, energy, sleepQuality })));
+      }
     } catch {
       toast(t('errors.generic'));
     }
@@ -143,7 +150,10 @@ export function LogPage() {
                 words={words(i18n)}
                 formatLabel={(n, word) => t('log.scaleOption', { n, word })}
                 value={values[field]}
-                onChange={(v) => setValues((s) => ({ ...s, [field]: v }))}
+                onChange={(v) => {
+                  setValues((s) => ({ ...s, [field]: v }));
+                  setMessage(null);
+                }}
               />
             </Tile>
           ))}
@@ -159,7 +169,10 @@ export function LogPage() {
           rows={3}
           className={`min-h-11 w-full resize-y rounded-control border-2 border-text/25 bg-surface px-4 py-3 text-text dark:border-tile-edge ${focusRing}`}
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => {
+            setNote(e.target.value);
+            setMessage(null);
+          }}
         />
         <Button
           disabled={!complete || !loaded}

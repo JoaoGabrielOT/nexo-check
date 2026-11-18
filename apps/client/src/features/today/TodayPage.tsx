@@ -15,6 +15,7 @@ import {
   setEntry,
 } from '../../db';
 import { useMediaQuery } from '../../app/useMediaQuery';
+import { formatLongDate } from '../../lib/dates';
 import { DaySummary } from './DaySummary';
 import { HabitTile, fmtHours } from './HabitTile';
 import { MovementHero } from './MovementHero';
@@ -25,18 +26,6 @@ import { useToday } from './useToday';
 // Mesmo limite do xl do Tailwind: a coluna de resumo só existe quando cabe ao lado da grade.
 const WIDE_QUERY = '(min-width: 1280px)';
 const ANNOUNCE_DELAY_MS = 500;
-
-/** "Terça, 17 de novembro" a partir de `YYYY-MM-DD` (data local). */
-export function formatLongDate(key: string, t: TFunction): string {
-  const [y = 1970, m = 1, d = 1] = key.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' }).replace(/-feira$/, '');
-  return t('today.dateTitle', {
-    weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1),
-    day: d,
-    month: date.toLocaleDateString('pt-BR', { month: 'long' }),
-  });
-}
 
 function describeEntry(h: Habit, e: HabitEntry | undefined, t: TFunction): string {
   const value = e?.value ?? 0;

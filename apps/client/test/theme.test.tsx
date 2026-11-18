@@ -99,6 +99,18 @@ describe('theme-color', () => {
     expect(metas()).toEqual(['#f7f5f2', '#f7f5f2']);
   });
 
+  it('devolve as cores originais das metas ao desmontar com tema forçado', () => {
+    const { unmount } = render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    act(() => screen.getByText('dark').click());
+    expect(metas()).toEqual(['#16141a', '#16141a']);
+    unmount();
+    expect(metas()).toEqual(['#f7f5f2', '#16141a']);
+  });
+
   it('volta às cores de cada esquema ao voltar para system', () => {
     function Back() {
       const { setTheme } = useTheme();

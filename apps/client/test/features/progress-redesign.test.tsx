@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProgressPage } from '../../src/features/progress';
 import { Heatmap } from '../../src/features/progress/Heatmap';
 import { setNowForTests } from '../../src/db/clock';
-import { resetDbForTests } from '../../src/db/db';
+import { db, resetDbForTests } from '../../src/db/db';
 import { ensureDefaultHabits, getHabits, setEntry } from '../../src/db';
 
 vi.mock('@nexo/ui', async (importOriginal) => ({
@@ -28,6 +28,11 @@ describe('Progresso redesenhado', () => {
     await setEntry(movement, '2026-11-09', 25, [10, 15]);
     await setEntry(movement, '2026-11-12', 0, []); // entrada zerada: não conta
     await setEntry(movement, '2026-11-17', 5, [5]);
+    // Entrada apagada (tombstone) com minutos: não conta.
+    await setEntry(movement, '2026-11-05', 20, [20]);
+    await db.habitEntries.update(`${movement.id}:2026-11-05`, {
+      deletedAt: '2026-11-06T10:00:00.000Z',
+    });
 
     render(<ProgressPage />);
     const hero = await screen.findByRole('region', { name: 'Movimento no mês' });
@@ -62,7 +67,7 @@ describe('Heatmap redesenhado', () => {
   it('tem legenda em texto para os quatro níveis', () => {
     render(<Heatmap today="2026-11-17" days={days} />);
     const legend = screen.getByRole('list', { name: 'Legenda do mapa de calor' });
-    for (const text of ['Nenhum', 'Até metade', 'Mais da metade', 'Completo']) {
+    for (const text of ['Nenhum', 'Menos da metade', 'Metade ou mais', 'Completo']) {
       expect(within(legend).getByText(text)).toBeInTheDocument();
     }
   });

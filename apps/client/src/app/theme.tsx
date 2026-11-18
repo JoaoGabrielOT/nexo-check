@@ -14,10 +14,10 @@ const THEME_COLOR = { light: '#f7f5f2', dark: '#16141a' } as const;
 
 // O index.html tem uma meta theme-color por esquema (media). Com tema forçado, as duas recebem a
 // cor escolhida; em system, cada uma volta à cor original guardada em data-default.
-function syncThemeColor(theme: Theme) {
+function syncThemeColor(theme: Theme | null) {
   for (const meta of document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
     meta.dataset.default ??= meta.content;
-    meta.content = theme === 'system' ? meta.dataset.default : THEME_COLOR[theme];
+    meta.content = theme === null || theme === 'system' ? meta.dataset.default : THEME_COLOR[theme];
   }
 }
 
@@ -28,15 +28,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const root = document.documentElement;
     syncThemeColor(theme);
+    // Ao trocar de tema ou desmontar, as metas voltam às cores originais (data-default).
+    const restore = () => syncThemeColor(null);
     if (theme !== 'system') {
       root.classList.toggle('dark', theme === 'dark');
-      return;
+      return restore;
     }
     const media = window.matchMedia(DARK_QUERY);
     const apply = () => root.classList.toggle('dark', media.matches);
     apply();
     media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
+    return () => {
+      media.removeEventListener('change', apply);
+      restore();
+    };
   }, [theme]);
 
   const value = useMemo(() => ({ theme, setTheme }), [theme]);

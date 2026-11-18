@@ -5,7 +5,7 @@ import { LogPage } from '../../src/features/log';
 import { getAfterSaveMessage } from '../../src/features/log/afterSave';
 import { setNowForTests } from '../../src/db/clock';
 import { resetDbForTests } from '../../src/db/db';
-import { getDailyLog } from '../../src/db';
+import { getDailyLog, type saveDailyLog } from '../../src/db';
 
 const toastMock = vi.hoisted(() => vi.fn());
 vi.mock('@nexo/ui', async (importOriginal) => ({
@@ -15,10 +15,18 @@ vi.mock('@nexo/ui', async (importOriginal) => ({
 
 // getDailyLog passa direto para o banco real, a não ser que o teste troque a implementação.
 const loadSpy = vi.hoisted(() => vi.fn());
+const saveSpy = vi.hoisted(() =>
+  vi.fn<(log: Parameters<typeof saveDailyLog>[0]) => Promise<void>>(),
+);
+const real = vi.hoisted(() => ({
+  save: (() => Promise.reject(new Error('mock não carregado'))) as typeof saveDailyLog,
+}));
 vi.mock('../../src/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/db')>();
   loadSpy.mockImplementation(actual.getDailyLog);
-  return { ...actual, getDailyLog: loadSpy };
+  saveSpy.mockImplementation(actual.saveDailyLog);
+  real.save = actual.saveDailyLog;
+  return { ...actual, getDailyLog: loadSpy, saveDailyLog: saveSpy };
 });
 
 const group = (name: string) => screen.findByRole('radiogroup', { name });
@@ -77,7 +85,7 @@ describe('Registro redesenhado', () => {
     const { container } = render(<LogPage />);
     const live = container.querySelector('[aria-live="polite"]');
     expect(live).not.toBeNull();
-    expect(live).toHaveTextContent('');
+    expect(live).toBeEmptyDOMElement();
 
     await pick(user, 'Estresse percebido', '5 — Muito alto');
     await pick(user, 'Humor', '2 — Mal');
@@ -88,6 +96,49 @@ describe('Registro redesenhado', () => {
     await waitFor(() => expect(live).toHaveTextContent(/respiração/));
     expect(live).toHaveTextContent(/não substitui/);
     expect(toastMock).toHaveBeenCalledWith('Registro salvo');
+  });
+
+  it('a frase de retorno some quando uma resposta ou a anotação muda depois de salvar', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<LogPage />);
+    const live = container.querySelector('[aria-live="polite"]');
+    await pick(user, 'Estresse percebido', '2 — Baixo');
+    await pick(user, 'Humor', '4 — Bem');
+    await pick(user, 'Disposição', '4 — Alta');
+    await pick(user, 'Qualidade do sono', '4 — Boa');
+    await user.click(save());
+    await waitFor(() => expect(live).not.toBeEmptyDOMElement());
+
+    await pick(user, 'Humor', '3 — Ok');
+    expect(live).toBeEmptyDOMElement();
+
+    await user.click(save());
+    await waitFor(() => expect(live).not.toBeEmptyDOMElement());
+    await user.type(screen.getByLabelText('Observação (fica só no seu aparelho)'), 'x');
+    expect(live).toBeEmptyDOMElement();
+  });
+
+  it('não mostra a frase de retorno se o dia mudou enquanto salvava', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<LogPage />);
+    const live = container.querySelector('[aria-live="polite"]');
+    await pick(user, 'Estresse percebido', '2 — Baixo');
+    await pick(user, 'Humor', '4 — Bem');
+    await pick(user, 'Disposição', '4 — Alta');
+    await pick(user, 'Qualidade do sono', '4 — Boa');
+
+    let release: () => void = () => {};
+    saveSpy.mockImplementationOnce(
+      (log) =>
+        new Promise<void>((resolve) => {
+          release = () => void real.save(log).then(resolve);
+        }),
+    );
+    await user.click(save());
+    await user.selectOptions(screen.getByLabelText('Dia'), '2026-11-12');
+    release();
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith('Registro salvo'));
+    expect(live).toBeEmptyDOMElement();
   });
 
   it('salvar fica desabilitado enquanto o dia escolhido carrega', async () => {

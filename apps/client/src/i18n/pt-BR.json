@@ -204,8 +204,8 @@
     "heatmapLegend": "Legenda do mapa de calor",
     "heatLevel": {
       "0": "Nenhum",
-      "1": "Até metade",
-      "2": "Mais da metade",
+      "1": "Menos da metade",
+      "2": "Metade ou mais",
       "3": "Completo"
     },
     "achievementsTitle": "Conquistas",

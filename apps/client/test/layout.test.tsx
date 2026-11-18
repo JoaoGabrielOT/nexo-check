@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- o link sempre está no header */
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { resetDbForTests } from '../src/db/db';
 import { updateSettings } from '../src/db';
 import { ThemeProvider } from '../src/app/theme';
@@ -59,21 +59,51 @@ describe('layout', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
   });
 
-  it('cabeçalho transparente ganha fundo e linha fina só depois de rolar', async () => {
+  it('cabeçalho transparente ganha fundo assim que o sentinela do topo sai da tela', async () => {
+    const observers: { cb: IntersectionObserverCallback; target?: Element; disconnect: Mock }[] =
+      [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        disconnect = vi.fn();
+        constructor(public cb: IntersectionObserverCallback) {
+          observers.push(this as unknown as (typeof observers)[number]);
+        }
+        observe(target: Element) {
+          (this as unknown as (typeof observers)[number]).target = target;
+        }
+        unobserve() {}
+        takeRecords() {
+          return [];
+        }
+      },
+    );
     renderAt('/');
     const header = (await screen.findByRole('link', { name: 'Configurações' })).closest('header')!;
     expect(header).toHaveAttribute('data-scrolled', 'false');
     expect(header.className).not.toMatch(/(^|\s)bg-bg(\s|$)/);
-    act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 40, configurable: true });
-      fireEvent.scroll(window);
-    });
+    const obs = observers.at(-1)!;
+    // O sentinela é o primeiro filho do main, com 1 px, antes do conteúdo da página.
+    expect(obs.target).toBe(screen.getByRole('main').firstElementChild);
+    // Inteiramente visível (razão 1) só no topo; ao rolar, a razão cai abaixo de 1.
+    const fire = (atTop: boolean) =>
+      act(() =>
+        obs.cb(
+          [
+            {
+              isIntersecting: atTop,
+              intersectionRatio: atTop ? 1 : 0,
+            } as IntersectionObserverEntry,
+          ],
+          obs as unknown as IntersectionObserver,
+        ),
+      );
+    fire(false);
     expect(header).toHaveAttribute('data-scrolled', 'true');
-    act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
-      fireEvent.scroll(window);
-    });
+    expect(header).toHaveClass('bg-bg');
+    fire(true);
     expect(header).toHaveAttribute('data-scrolled', 'false');
+    vi.unstubAllGlobals();
   });
 
   it('barra inferior respeita a área segura e o item ativo tem ícone em pílula preenchida', async () => {
