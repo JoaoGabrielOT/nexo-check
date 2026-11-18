@@ -1,7 +1,7 @@
 import { KeyRound } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
   CONSENT_VERSION,
   generateParticipantCode,
@@ -11,6 +11,7 @@ import {
 import { Button, cn, toast } from '@nexo/ui';
 import { MarkdownView } from '../../components/MarkdownView';
 import { now } from '../../db/clock';
+import { safeNext } from '../../lib/nextPath';
 import { ensureDefaultHabits, getSettings, updateSettings } from '../../db';
 import { ConsentStep } from './ConsentStep';
 
@@ -27,10 +28,13 @@ const title =
 export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Quem veio de outra tela (ex.: /checkin?c=CODIGO) volta para ela depois do consentimento.
+  const next = safeNext(params.get('next'));
   const [step, setStep] = useState<Step>(reconsent ? 'consent' : 'welcome');
   const [credentials, setCredentials] = useState<{ code: string; key: string } | null>(null);
 
-  const finish = () => navigate('/', { replace: true });
+  const finish = () => navigate(next, { replace: true });
 
   const accept = async () => {
     const current = await getSettings();

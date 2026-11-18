@@ -391,7 +391,7 @@
     "start": "Começar",
     "next": "Avançar",
     "back": "Voltar",
-    "submit": "Enviar respostas",
+    "submit": "Salvar respostas",
     "edit": "Editar",
     "backToReview": "Voltar à revisão",
     "progress": "{{current}} de {{total}}",
@@ -411,7 +411,7 @@
     "decrease": "Diminuir",
     "increase": "Aumentar",
     "scaleOption": "{{n}} — {{word}}",
-    "doneTitle": "Questionário enviado",
+    "doneTitle": "Respostas salvas",
     "doneText": "Obrigado por responder. Suas respostas foram salvas neste aparelho.",
     "alreadyDone": "Respondido em {{date}}",
     "resultTitle": "Seu resultado",
@@ -420,7 +420,9 @@
     "yourAnswer": "Sua resposta",
     "correctAnswer": "Resposta correta",
     "matched": "Você acertou",
-    "label": "Questionário"
+    "label": "Questionário",
+    "answerToContinue": "Responda para poder avançar.",
+    "saveFailed": "Não foi possível salvar as respostas. Tente de novo."
   },
   "checkin": {
     "title": "Check-in da oficina",
@@ -428,7 +430,7 @@
     "codeHint": "São 6 caracteres, sem I, L, O, 0 ou 1.",
     "confirm": "Confirmar presença",
     "invalidCode": "Código inválido. Use 6 caracteres: números de 2 a 9 e letras, sem I, L ou O.",
-    "duplicate": "Esse código já foi registrado neste aparelho.",
+    "duplicate": "Você já registrou esse código.",
     "saved": "Presença registrada. Ela será confirmada quando você sincronizar.",
     "history": "Seus check-ins",
     "empty": "Nenhum check-in ainda.",
@@ -440,6 +442,7 @@
     "reason_expired": "código expirado",
     "consentTitle": "Presença depende da pesquisa",
     "consentText": "A presença só conta com a participação na pesquisa. Sem o seu consentimento, nada é registrado nem enviado.",
-    "consentCta": "Ir para o consentimento"
+    "consentCta": "Ir para o consentimento",
+    "saveFailed": "Não foi possível salvar o check-in. Tente de novo."
   }
 }

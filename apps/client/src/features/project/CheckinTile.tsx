@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { normalizeCode } from '@nexo/shared';
 import { Button, Tile, buttonVariants, cn } from '@nexo/ui';
-import { addCheckin, db, getSettings } from '../../db';
+import { DuplicateCheckinError, addCheckin, db, getSettings } from '../../db';
 import type { LocalCheckin } from '../../db/schemas';
 import { SESSION_CODE_PATTERN, SESSION_CODE_RE } from './helpers';
 
@@ -67,24 +67,34 @@ export function CheckinTile({ initialCode = '' }: { initialCode?: string }) {
   const [code, setCode] = useState(() => clean(initialCode));
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const inFlight = useRef(false);
+  const location = useLocation();
+  // Depois do consentimento o app volta para esta mesma tela, com o código do QR na URL.
+  const consentTo = `/onboarding/consentimento?next=${encodeURIComponent(location.pathname + location.search)}`;
 
   const consented = settings?.consent?.granted === true;
 
   const confirm = async () => {
-    // Confere o consentimento na hora de gravar, não só na hora de desenhar a tela.
-    if (!(await getSettings()).consent?.granted) return;
-    const normalized = normalizeCode(code);
-    if (!SESSION_CODE_RE.test(normalized)) {
-      setError(t('checkin.invalidCode'));
-      return;
+    // Toque duplo: só uma gravação por vez (e o banco recusa o código repetido de qualquer forma).
+    if (inFlight.current || items === undefined) return;
+    inFlight.current = true;
+    try {
+      // Confere o consentimento na hora de gravar, não só na hora de desenhar a tela.
+      if (!(await getSettings()).consent?.granted) return;
+      const normalized = normalizeCode(code);
+      if (!SESSION_CODE_RE.test(normalized)) {
+        setError(t('checkin.invalidCode'));
+        return;
+      }
+      await addCheckin(normalized);
+      setCode('');
+      setSaved(true);
+    } catch (e) {
+      if (e instanceof DuplicateCheckinError) setError(t('checkin.duplicate'));
+      else setError(t('checkin.saveFailed'));
+    } finally {
+      inFlight.current = false;
     }
-    if (items?.some((c) => c.sessionCode === normalized)) {
-      setError(t('checkin.duplicate'));
-      return;
-    }
-    await addCheckin(normalized);
-    setCode('');
-    setSaved(true);
   };
 
   return (
@@ -93,7 +103,7 @@ export function CheckinTile({ initialCode = '' }: { initialCode?: string }) {
         <div className="flex flex-col gap-3">
           <h2 className="text-xl font-extrabold tracking-[-0.02em]">{t('checkin.consentTitle')}</h2>
           <p className="max-w-prose text-base">{t('checkin.consentText')}</p>
-          <Link to="/onboarding/consentimento" className={cn(buttonVariants(), 'self-start')}>
+          <Link to={consentTo} className={cn(buttonVariants(), 'self-start')}>
             {t('checkin.consentCta')}
           </Link>
         </div>
@@ -146,7 +156,11 @@ export function CheckinTile({ initialCode = '' }: { initialCode?: string }) {
               {t('checkin.saved')}
             </p>
           )}
-          <Button type="submit" className="self-start" disabled={code.length !== 6}>
+          <Button
+            type="submit"
+            className="self-start"
+            disabled={code.length !== 6 || items === undefined}
+          >
             {t('checkin.confirm')}
           </Button>
         </form>

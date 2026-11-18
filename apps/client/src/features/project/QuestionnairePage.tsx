@@ -105,10 +105,26 @@ function Result({ def, answers }: { def: QuestionnaireDef; answers: Answers }) {
   );
 }
 
-function Done({ def, response }: { def: QuestionnaireDef; response: LocalQuestionnaireResponse }) {
+function Done({
+  def,
+  response,
+  focusOnMount,
+}: {
+  def: QuestionnaireDef;
+  response: LocalQuestionnaireResponse;
+  focusOnMount: boolean;
+}) {
   const { t } = useTranslation();
+  const ref = useRef<HTMLDivElement>(null);
+  // Logo depois de salvar, o foco vai para o título da tela nova (o botão que tinha o foco sumiu).
+  useEffect(() => {
+    const h1 = ref.current?.querySelector('h1');
+    if (!focusOnMount || !h1) return;
+    h1.tabIndex = -1;
+    h1.focus();
+  }, [focusOnMount]);
   return (
-    <div className={wrap}>
+    <div ref={ref} className={wrap}>
       <PageHeader
         eyebrow={t('questionnaire.alreadyDone', { date: formatDayMonth(response.submittedAt) })}
         title={def.title}
@@ -161,17 +177,21 @@ function Flow({
   const [step, setStep] = useState(-1);
   const [answers, setAnswers] = useState<Answers>({});
   const [fromReview, setFromReview] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  // Um id por preenchimento: salvar de novo sobrescreve a mesma linha, nunca cria outra.
+  const responseId = useRef(newId());
+  const saving = useRef(false);
   const stepRef = useRef<HTMLDivElement>(null);
   const first = useRef(true);
 
   // Troca de tela: o foco vai para o conteúdo novo (leitor de tela e teclado seguem o fluxo).
   useEffect(() => {
     if (first.current) first.current = false;
-    else stepRef.current?.focus();
+    else (stepRef.current?.querySelector<HTMLElement>('h2') ?? stepRef.current)?.focus();
   }, [step]);
 
   const question = step >= 0 && step < total ? def.questions[step] : undefined;
+  const answered = question ? isAnswered(question, answers[question.id]) : false;
   const setAnswer = (q: Question, v: Answers[string] | undefined) =>
     setAnswers((prev) => {
       const rest = Object.fromEntries(Object.entries(prev).filter(([id]) => id !== q.id));
@@ -179,18 +199,25 @@ function Flow({
     });
 
   const submit = async () => {
-    setSaving(true);
+    if (saving.current) return;
+    saving.current = true;
+    setSaveError(false);
     const score = def.kind === 'educativo' ? scoreEducational(def, answers).ratio : null;
     const response: Omit<LocalQuestionnaireResponse, 'syncedAt'> = {
-      id: newId(),
+      id: responseId.current,
       kind: def.kind,
       version: def.version,
       answers,
       score,
       submittedAt: now().toISOString(),
     };
-    await saveQuestionnaireResponse(response);
-    onSaved({ ...response, syncedAt: null });
+    try {
+      await saveQuestionnaireResponse(response);
+      onSaved({ ...response, syncedAt: null });
+    } catch {
+      saving.current = false;
+      setSaveError(true);
+    }
   };
 
   const next = () => {
@@ -207,6 +234,9 @@ function Flow({
         title={def.title}
         meta={def.draft ? <DraftBadge /> : undefined}
       />
+      <p role="status" aria-live="polite" className="sr-only">
+        {question && t('questionnaire.progressLabel', { current: step + 1, total })}
+      </p>
       <Tile tone="water" label={t('questionnaire.label')}>
         <div ref={stepRef} tabIndex={-1} className="flex flex-col gap-6 outline-none">
           {step === -1 && (
@@ -248,17 +278,30 @@ function Flow({
                 >
                   {t('questionnaire.back')}
                 </Button>
-                <Button disabled={!isAnswered(question, answers[question.id])} onClick={next}>
+                <Button
+                  aria-disabled={!answered}
+                  aria-describedby={answered ? undefined : 'answer-hint'}
+                  className={cn(!answered && 'cursor-not-allowed opacity-50')}
+                  onClick={() => answered && next()}
+                >
                   {fromReview ? t('questionnaire.backToReview') : t('questionnaire.next')}
                 </Button>
               </div>
+              {!answered && (
+                <p id="answer-hint" className="text-sm font-semibold">
+                  {t('questionnaire.answerToContinue')}
+                </p>
+              )}
             </>
           )}
 
           {step === total && (
             <>
               <div>
-                <h2 className="text-2xl font-extrabold tracking-[-0.03em]">
+                <h2
+                  tabIndex={-1}
+                  className="text-2xl font-extrabold tracking-[-0.03em] outline-none"
+                >
                   {t('questionnaire.review')}
                 </h2>
                 <p className="mt-1 text-sm font-semibold">{t('questionnaire.reviewHint')}</p>
@@ -291,10 +334,13 @@ function Flow({
                 <Button variant="secondary" onClick={() => setStep(total - 1)}>
                   {t('questionnaire.back')}
                 </Button>
-                <Button disabled={saving} onClick={() => void submit()}>
-                  {t('questionnaire.submit')}
-                </Button>
+                <Button onClick={() => void submit()}>{t('questionnaire.submit')}</Button>
               </div>
+              {saveError && (
+                <p role="alert" className="text-sm font-extrabold">
+                  {t('questionnaire.saveFailed')}
+                </p>
+              )}
             </>
           )}
         </div>
@@ -315,7 +361,7 @@ function QuestionnaireView({ def }: { def: QuestionnaireDef }) {
       .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0];
   const existing = justSaved ?? latest(def.kind);
 
-  if (existing) return <Done def={def} response={existing} />;
+  if (existing) return <Done def={def} response={existing} focusOnMount={justSaved !== null} />;
   if (def.kind === 'final' && !latest('inicial')) return <Locked def={def} />;
   return <Flow def={def} onSaved={setJustSaved} />;
 }

@@ -23,6 +23,7 @@ import {
   getQuestionnaireResponses,
   markQuestionnaireSynced,
   addCheckin,
+  DuplicateCheckinError,
   updateCheckinStatus,
   setEntry,
   updateSettings,
@@ -243,6 +244,14 @@ describe('questionários e check-ins', () => {
     expect(c).toMatchObject({ status: 'pending', sessionCode: 'ABC' });
     await updateCheckinStatus(c.id, { status: 'confirmed', workshop: 1, date: '2026-01-02' });
     expect((await db.checkins.get(c.id))?.status).toBe('confirmed');
+  });
+
+  it('addCheckin recusa o mesmo código, inclusive em chamadas simultâneas', async () => {
+    const results = await Promise.allSettled([addCheckin('XYZ234'), addCheckin('XYZ234')]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.find((r) => r.status === 'rejected');
+    expect(rejected?.reason).toBeInstanceOf(DuplicateCheckinError);
+    expect(await db.checkins.count()).toBe(1);
   });
 });
 

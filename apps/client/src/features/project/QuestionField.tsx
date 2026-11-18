@@ -24,6 +24,8 @@ const pillOff = 'border-text/25 bg-surface/70 text-text hover:border-text/60';
 const pillOn =
   'border-navy bg-navy text-[#f7f5f2] dark:border-peach dark:bg-peach dark:text-navy font-extrabold';
 
+const NUMBER_RE = /^\d+([.,]\d+)?$/;
+
 const NEXT: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
 function SingleField({
@@ -139,11 +141,19 @@ function NumberField({
     onChange(n);
     setText(n === undefined ? '' : String(n));
   };
+  const parse = (raw: string) =>
+    NUMBER_RE.test(raw.trim()) ? Number(raw.trim().replace(',', '.')) : null;
+  // Enquanto digita, só um número válido e dentro dos limites vira resposta; o resto fica sem resposta.
   const onType = (raw: string) => {
     setText(raw);
-    const n = Number(raw.replace(',', '.'));
-    if (raw.trim() === '') onChange(undefined);
-    else if (Number.isFinite(n)) onChange(clamp(n));
+    const n = parse(raw);
+    onChange(n !== null && n >= min && n <= max ? n : undefined);
+  };
+  // Ao sair do campo: número válido é ajustado aos limites; texto inválido volta ao último valor.
+  const onBlurField = () => {
+    const n = parse(text);
+    if (n !== null) commit(clamp(n));
+    else setText(current === undefined ? '' : String(current));
   };
   const unit = question.unit;
   return (
@@ -166,7 +176,7 @@ function NumberField({
         value={text}
         placeholder={String(min)}
         onChange={(e) => onType(e.target.value)}
-        onBlur={() => setText(current === undefined ? '' : String(current))}
+        onBlur={onBlurField}
         className={cn(
           'min-h-14 w-24 rounded-control border-2 border-border bg-surface px-3 text-center text-2xl font-extrabold tabular-nums text-text',
           focusRing,
@@ -216,7 +226,8 @@ export function QuestionField(props: QuestionFieldProps) {
     <div className="flex flex-col gap-5">
       <h2
         id={labelId}
-        className="text-2xl leading-tight font-extrabold tracking-[-0.03em] text-balance sm:text-[1.75rem]"
+        tabIndex={-1}
+        className="outline-none text-2xl leading-tight font-extrabold tracking-[-0.03em] text-balance sm:text-[1.75rem]"
       >
         {title}
       </h2>
