@@ -9,12 +9,14 @@ export interface ConsentStepProps {
   reconsent: boolean;
   onAccept: () => void | Promise<void>;
   onDecline: () => void | Promise<void>;
+  /** Quem já participa em outro aparelho restaura com código e chave, sem gerar outro participante. */
+  onRestore?: () => void;
 }
 
 // As duas escolhas têm o mesmo tamanho, uma sob a outra: nenhuma é empurrada.
 const choice = 'min-h-14 w-full px-6 text-base';
 
-export function ConsentStep({ reconsent, onAccept, onDecline }: ConsentStepProps) {
+export function ConsentStep({ reconsent, onAccept, onDecline, onRestore }: ConsentStepProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,6 +75,11 @@ export function ConsentStep({ reconsent, onAccept, onDecline }: ConsentStepProps
         >
           {t('onboarding.decline')}
         </Button>
+        {onRestore && (
+          <Button variant="ghost" className={choice} disabled={busy} onClick={onRestore}>
+            {t('onboarding.restoreExisting')}
+          </Button>
+        )}
       </div>
     </>
   );

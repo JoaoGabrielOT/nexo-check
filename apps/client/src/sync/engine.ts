@@ -17,7 +17,8 @@ import {
   applyRemoteChanges,
   db,
   getSettings,
-  markQuestionnaireSynced,
+  backfillHistory,
+  outboxCount,
   peekOutbox,
   updateCheckinStatus,
   updateSettings,
@@ -26,7 +27,7 @@ import {
 import { now } from '../db/clock';
 import { onLocalWrite } from '../db/localWrites';
 import type { AppSettings } from '../db/schemas';
-import { ApiError, apiFetch, type Credentials } from './http';
+import { ApiError, apiFetch, type ApiInit, type Credentials } from './http';
 
 export type SyncResult = 'synced' | 'skipped' | 'offline' | 'error';
 export type SyncPhase = 'idle' | 'syncing' | 'error' | 'offline';
@@ -93,6 +94,27 @@ function errorCodeOf(e: unknown): SyncErrorCode {
 
 const anyAck = z.unknown();
 
+/** Execução em andamento: `revokeConsent` a aborta na hora (requisições e esperas de retry). */
+let current: AbortController | null = null;
+
+const stillConsented = async (): Promise<boolean> => isConsented(await getSettings());
+
+/** Requisição de dados do participante: cancelável e que reconfere o consentimento a cada retry. */
+function call<T>(path: string, init: ApiInit<T>): Promise<T> {
+  return apiFetch(path, { ...init, signal: current?.signal, guard: stillConsented });
+}
+
+const isAborted = (e: unknown): boolean => e instanceof ApiError && e.code === 'aborted';
+
+/** Trava única: sincronização e restauração nunca rodam ao mesmo tempo. */
+let lockTail: Promise<void> = Promise.resolve();
+function withLock<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = lockTail;
+  let release!: () => void;
+  lockTail = new Promise<void>((resolve) => (release = resolve));
+  return prev.then(fn).finally(release);
+}
+
 // --- etapas ------------------------------------------------------------------------------------
 
 async function register(): Promise<void> {
@@ -101,7 +123,7 @@ async function register(): Promise<void> {
   if (participant.registered || !consent) return;
   for (let i = 0; i < REGISTER_TRIES; i++) {
     try {
-      await apiFetch('/v1/participants', {
+      await call('/v1/participants', {
         method: 'POST',
         body: JSON.stringify({
           code: participant.code,
@@ -127,7 +149,7 @@ async function register(): Promise<void> {
 async function syncConsentVersion(): Promise<void> {
   const { consent, consentSyncedVersion } = await requireConsent();
   if (!consent || (consentSyncedVersion ?? 0) >= consent.version) return;
-  await apiFetch('/v1/participants/me/consent', {
+  await call('/v1/participants/me/consent', {
     method: 'PATCH',
     auth: true,
     body: JSON.stringify({ consentVersion: consent.version }),
@@ -142,7 +164,7 @@ async function push(): Promise<void> {
     const batch = await peekOutbox(BATCH);
     if (batch.length === 0) return;
     // O cursor devolvido pelo POST é só informativo: nunca serve de cursor do pull.
-    await apiFetch('/v1/sync', {
+    await call('/v1/sync', {
       method: 'POST',
       auth: true,
       body: JSON.stringify({ changes: batch.map((b) => b.change) }),
@@ -155,18 +177,17 @@ async function push(): Promise<void> {
 /** Baixa tudo desde `since`, aplicando e gravando o cursor a cada página. */
 async function pullAll(
   since: string,
-  auth: true | Credentials,
-  onFirstPage?: () => Promise<void>,
+  fetchPage: (cursor: string) => Promise<z.infer<typeof syncPullResponse>>,
+  hooks: { beforePage?: () => Promise<void>; onFirstPage?: () => Promise<void> } = {},
 ): Promise<void> {
   let cursor = since;
   let first = true;
   for (;;) {
-    const page = await apiFetch(`/v1/sync?since=${encodeURIComponent(cursor)}`, {
-      method: 'GET',
-      auth,
-      schema: syncPullResponse,
-    });
-    if (first) await onFirstPage?.();
+    await hooks.beforePage?.();
+    const page = await fetchPage(cursor);
+    // A resposta pode chegar depois de uma revogação: não grava nada nesse caso.
+    await hooks.beforePage?.();
+    if (first) await hooks.onFirstPage?.();
     first = false;
     await applyRemoteChanges(page.changes);
     await updateSettings({ syncCursor: page.cursor });
@@ -182,7 +203,7 @@ async function sendQuestionnaires(soft: (e: unknown) => void): Promise<void> {
     await requireConsent();
     try {
       const answers = stripTextAnswers(getQuestionnaire(r.kind), r.answers);
-      const res = await apiFetch('/v1/questionnaires', {
+      const res = await call('/v1/questionnaires', {
         method: 'POST',
         auth: true,
         body: JSON.stringify({
@@ -199,10 +220,14 @@ async function sendQuestionnaires(soft: (e: unknown) => void): Promise<void> {
         ...(res.score !== null && { score: res.score }),
       });
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        // O servidor já tem uma resposta com este id: reenviar nunca vai mudar isso.
-        await markQuestionnaireSynced(r.id, now().toISOString());
-        await db.questionnaireResponses.update(r.id, { syncConflict: true });
+      if (e instanceof ApiError && (e.status === 409 || e.status === 400)) {
+        // 409: o servidor já tem uma resposta com este id. 400: erro de validação determinístico.
+        // Reenviar nunca muda isso: marca como tratada, com o flag, numa só gravação.
+        if (e.status === 400) console.warn('Sincronização: questionário recusado', e);
+        await db.questionnaireResponses.update(r.id, {
+          syncedAt: now().toISOString(),
+          syncConflict: true,
+        });
       } else if (isFatal(e)) throw e;
       else soft(e);
     }
@@ -217,7 +242,7 @@ async function sendCheckins(soft: (e: unknown) => void): Promise<void> {
     await requireConsent();
     const at = now().toISOString();
     try {
-      const res = await apiFetch('/v1/checkins', {
+      const res = await call('/v1/checkins', {
         method: 'POST',
         auth: true,
         body: JSON.stringify({ sessionCode: c.sessionCode, clientId: c.id }),
@@ -231,10 +256,17 @@ async function sendCheckins(soft: (e: unknown) => void): Promise<void> {
         syncedAt: at,
       });
     } catch (e) {
-      if (e instanceof ApiError && (e.status === 404 || e.status === 410)) {
+      // Só os códigos de negócio rejeitam; qualquer outro 404/410 (proxy, rota errada) fica pendente.
+      const reason =
+        e instanceof ApiError && e.status === 404 && e.code === 'invalid_code'
+          ? 'invalid_code'
+          : e instanceof ApiError && e.status === 410 && e.code === 'expired'
+            ? 'expired'
+            : null;
+      if (reason) {
         await updateCheckinStatus(c.id, {
           status: 'rejected',
-          reason: e.status === 410 ? 'expired' : 'invalid_code',
+          reason,
           syncedAt: at,
         });
       } else if (isFatal(e)) throw e;
@@ -256,6 +288,8 @@ async function run(): Promise<SyncResult> {
     return 'offline';
   }
   setSnapshot({ phase: 'syncing', error: null });
+  const controller = new AbortController();
+  current = controller;
   let softError: SyncErrorCode | null = null;
   const soft = (e: unknown) => {
     // Rejeição de um item (400 etc.): registra, mantém o item e segue com o resto.
@@ -265,6 +299,7 @@ async function run(): Promise<SyncResult> {
   try {
     await register();
     await syncConsentVersion();
+    if ((await requireConsent()).backfillPending) await backfillHistory();
     try {
       await push();
     } catch (e) {
@@ -272,11 +307,20 @@ async function run(): Promise<SyncResult> {
       soft(e);
     }
     const { syncCursor } = await requireConsent();
-    await pullAll(syncCursor ?? '0', true);
+    await pullAll(
+      syncCursor ?? '0',
+      (cursor) =>
+        call(`/v1/sync?since=${encodeURIComponent(cursor)}`, {
+          method: 'GET',
+          auth: true,
+          schema: syncPullResponse,
+        }),
+      { beforePage: async () => void (await requireConsent()) },
+    );
     await sendQuestionnaires(soft);
     await sendCheckins(soft);
   } catch (e) {
-    if (e instanceof Revoked) {
+    if (e instanceof Revoked || isAborted(e)) {
       setSnapshot({ phase: 'idle', error: null });
       return 'skipped';
     }
@@ -292,6 +336,7 @@ async function run(): Promise<SyncResult> {
     setSnapshot({ phase: 'error', error: softError });
     return 'error';
   }
+  if (!(await stillConsented())) return 'skipped';
   await updateSettings({ lastSyncAt: now().toISOString() });
   setSnapshot({ phase: 'idle', error: null });
   return 'synced';
@@ -301,8 +346,9 @@ let inflight: Promise<SyncResult> | null = null;
 
 /** Uma execução por vez: chamadas simultâneas esperam a mesma promessa. */
 export function syncNow(): Promise<SyncResult> {
-  inflight ??= run().finally(() => {
+  inflight ??= withLock(run).finally(() => {
     inflight = null;
+    current = null;
   });
   return inflight;
 }
@@ -351,26 +397,57 @@ export function startSyncLoop(): () => void {
   };
 }
 
-/** Restaura em outro aparelho: valida as credenciais com um pull e baixa tudo. Lança `ApiError`. */
-export async function restoreFromServer(code: string, key: string): Promise<void> {
-  const creds: Credentials = { code: normalizeCode(code), key: normalizeRecoveryKey(key) };
-  await pullAll('0', creds, async () => {
-    // Primeira página aceita = credenciais válidas.
-    await updateSettings({
-      participant: { ...creds, registered: true },
-      syncCursor: null,
-    });
-  });
+/** O aparelho já tem outro participante registrado com dados ainda não enviados. */
+export class RestoreBlockedError extends Error {
+  constructor() {
+    super('Restauração bloqueada: há dados pendentes de outro participante.');
+    this.name = 'RestoreBlockedError';
+  }
 }
 
-/** Revoga o consentimento: nada mais sai do aparelho e o que estava na fila é descartado. */
-export async function revokeConsent(): Promise<void> {
-  await updateSettings({ consent: null });
-  await clearOutbox();
-  // Uma execução em andamento vê o consentimento sumir na próxima etapa; espera e limpa de novo.
-  await inflight?.catch(() => undefined);
+async function restoreLocked(code: string, key: string): Promise<void> {
+  const creds: Credentials = { code: normalizeCode(code), key: normalizeRecoveryKey(key) };
+  const local = (await getSettings()).participant;
+  // Trocar de participante com fila pendente enviaria os dados de um para a conta do outro.
+  if (local?.registered && local.code !== creds.code && (await outboxCount()) > 0) {
+    throw new RestoreBlockedError();
+  }
+  await pullAll(
+    '0',
+    (cursor) =>
+      apiFetch(`/v1/sync?since=${encodeURIComponent(cursor)}`, {
+        method: 'GET',
+        auth: creds,
+        schema: syncPullResponse,
+      }),
+    {
+      // Primeira página aceita = credenciais válidas.
+      onFirstPage: () =>
+        updateSettings({
+          participant: { ...creds, registered: true },
+          syncCursor: null,
+          consentSyncedVersion: undefined,
+        }),
+    },
+  );
+}
+
+/** Restaura em outro aparelho: valida as credenciais com um pull e baixa tudo. Lança `ApiError`. */
+export function restoreFromServer(code: string, key: string): Promise<void> {
+  return withLock(() => restoreLocked(code, key));
+}
+
+/**
+ * Revoga o consentimento: aborta a sincronização em andamento (requisições e esperas de retry),
+ * descarta o outbox e, se pedido, apaga os dados no servidor. Não espera a execução terminar.
+ */
+export async function revokeConsent(opts: { deleteRemote?: boolean } = {}): Promise<void> {
+  // Sem consentimento a próxima sincronização refaz o histórico (backfill) ao reconsentir.
+  await updateSettings({ consent: null, backfillPending: true });
+  current?.abort();
   await clearOutbox();
   setSnapshot({ phase: 'idle', error: null });
+  if (opts.deleteRemote) await deleteRemoteParticipant();
 }
 
 /** Apaga os dados do participante no servidor (LGPD) e volta a marcá-lo como não registrado. */
@@ -387,5 +464,6 @@ export async function deleteRemoteParticipant(): Promise<void> {
     syncCursor: null,
     lastSyncAt: null,
     consentSyncedVersion: undefined,
+    backfillPending: true,
   });
 }

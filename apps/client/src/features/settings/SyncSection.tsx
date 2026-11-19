@@ -10,18 +10,12 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  Input,
   Tile,
   toast,
 } from '@nexo/ui';
 import { getSettings } from '../../db';
-import {
-  deleteRemoteParticipant,
-  restoreFromServer,
-  revokeConsent,
-  syncNow,
-} from '../../sync/engine';
-import { ApiError } from '../../sync/http';
+import { revokeConsent, syncNow } from '../../sync/engine';
+import { RestoreDialog } from './RestoreDialog';
 import { useSyncStatus } from '../../sync/useSyncStatus';
 
 const iconBtn =
@@ -38,9 +32,6 @@ export function SyncSection() {
   const [dialog, setDialog] = useState<Dialogs>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [code, setCode] = useState('');
-  const [key, setKey] = useState('');
-  const [restoreError, setRestoreError] = useState<string | null>(null);
   if (!settings) return null;
   const participant = settings.participant;
   const enabled = settings.consent?.granted === true && settings.consent.version >= CONSENT_VERSION;
@@ -72,39 +63,16 @@ export function SyncSection() {
     }
   };
 
-  const restore = async () => {
-    setBusy(true);
-    setRestoreError(null);
-    try {
-      await restoreFromServer(code, key);
-      setDialog(null);
-      setCode('');
-      setKey('');
-      toast(t('settings.sync.restored'));
-    } catch (e) {
-      const bad = e instanceof ApiError && (e.status === 401 || e.status === 400);
-      setRestoreError(bad ? t('settings.sync.restoreInvalid') : t('settings.sync.restoreFailed'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const revoke = async (alsoDelete: boolean) => {
     setBusy(true);
     setDialog(null);
     try {
-      await revokeConsent();
-      if (alsoDelete) {
-        try {
-          await deleteRemoteParticipant();
-        } catch {
-          setNotice(t('settings.sync.revokedDeleteFailed'));
-          return;
-        }
-      }
+      await revokeConsent({ deleteRemote: alsoDelete });
       toast(t('settings.sync.revoked'));
     } catch {
-      toast(t('errors.generic'));
+      // O consentimento já foi revogado; só a exclusão no servidor pode ter falhado.
+      if ((await getSettings()).consent === null) setNotice(t('settings.sync.revokedDeleteFailed'));
+      else toast(t('errors.generic'));
     } finally {
       setBusy(false);
     }
@@ -196,69 +164,11 @@ export function SyncSection() {
         </Button>
       </div>
 
-      <Dialog
+      <RestoreDialog
         open={dialog === 'restore'}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDialog(null);
-            setRestoreError(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogTitle>{t('settings.sync.restoreTitle')}</DialogTitle>
-          <DialogDescription>{t('settings.sync.restoreBody')}</DialogDescription>
-          <form
-            noValidate
-            className="mt-4 flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void restore();
-            }}
-          >
-            <label htmlFor="restore-code" className="text-sm font-extrabold">
-              {t('settings.sync.restoreCode')}
-            </label>
-            <Input
-              id="restore-code"
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              placeholder="NEXO-XXXX"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="font-mono tracking-wider uppercase"
-            />
-            <label htmlFor="restore-key" className="text-sm font-extrabold">
-              {t('settings.sync.restoreKey')}
-            </label>
-            <Input
-              id="restore-key"
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-              className="font-mono tracking-wider uppercase"
-            />
-            {restoreError && (
-              <p role="alert" className="text-sm font-extrabold">
-                {restoreError}
-              </p>
-            )}
-            <div className="mt-3 flex flex-wrap justify-end gap-3">
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">
-                  {t('settings.sync.cancel')}
-                </Button>
-              </DialogClose>
-              <Button type="submit" disabled={busy || !code.trim() || !key.trim()}>
-                {busy ? t('settings.sync.restoring') : t('settings.sync.restoreConfirm')}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={(open) => !open && setDialog(null)}
+        onRestored={() => void toast(t('settings.sync.restored'))}
+      />
 
       <Dialog open={dialog === 'revoke'} onOpenChange={(open) => !open && setDialog(null)}>
         <DialogContent>

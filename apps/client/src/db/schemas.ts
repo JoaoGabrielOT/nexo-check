@@ -46,6 +46,8 @@ export const appSettingsSchema = z.object({
   lastSyncAt: iso.nullable(),
   /** Versão do consentimento que o servidor já conhece. */
   consentSyncedVersion: z.number().int().optional(),
+  /** Revogou ou apagou no servidor: ao voltar a sincronizar, reenvia todo o histórico. */
+  backfillPending: z.boolean().optional(),
   unlockedAchievements: z.array(z.object({ id: achievementId, at: iso })),
 });
 

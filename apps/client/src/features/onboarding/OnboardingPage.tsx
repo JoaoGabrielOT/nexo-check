@@ -13,6 +13,7 @@ import { MarkdownView } from '../../components/MarkdownView';
 import { now } from '../../db/clock';
 import { safeNext } from '../../lib/nextPath';
 import { ensureDefaultHabits, getSettings, updateSettings } from '../../db';
+import { RestoreDialog } from '../settings/RestoreDialog';
 import { ConsentStep } from './ConsentStep';
 
 type Step = 'welcome' | 'consent' | 'code';
@@ -32,6 +33,7 @@ export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
   // Quem veio de outra tela (ex.: /checkin?c=CODIGO) volta para ela depois do consentimento.
   const next = safeNext(params.get('next'));
   const [step, setStep] = useState<Step>(reconsent ? 'consent' : 'welcome');
+  const [restoring, setRestoring] = useState(false);
   const [credentials, setCredentials] = useState<{ code: string; key: string } | null>(null);
 
   const finish = () => navigate(next, { replace: true });
@@ -60,6 +62,17 @@ export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
 
   const decline = async () => {
     await updateSettings({ consent: null, onboardingDone: true });
+    await ensureDefaultHabits(now());
+    finish();
+  };
+
+  // Restaurar não gera participante novo: o consentimento só é gravado depois de o servidor
+  // aceitar o código e a chave, e o participante vem do restore.
+  const restored = async () => {
+    await updateSettings({
+      consent: { granted: true, version: CONSENT_VERSION, at: now().toISOString() },
+      onboardingDone: true,
+    });
     await ensureDefaultHabits(now());
     finish();
   };
@@ -103,7 +116,13 @@ export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
         {step === 'consent' && (
           <>
             <h1 className={title}>{t('onboarding.consentTitle')}</h1>
-            <ConsentStep reconsent={reconsent} onAccept={accept} onDecline={decline} />
+            <ConsentStep
+              reconsent={reconsent}
+              onAccept={accept}
+              onDecline={decline}
+              onRestore={reconsent ? undefined : () => setRestoring(true)}
+            />
+            <RestoreDialog open={restoring} onOpenChange={setRestoring} onRestored={restored} />
           </>
         )}
 

@@ -30,10 +30,30 @@ export type ApiInit<T> = RequestInit & {
   /** `true` usa o participante salvo; um objeto usa essas credenciais. */
   auth?: boolean | Credentials;
   timeoutMs?: number;
+  /** Cancela a requisição e qualquer espera de retry (code `aborted`, nunca retentado). */
+  signal?: AbortSignal;
+  /** Chamado antes de cada nova tentativa; `false` cancela (ex.: consentimento revogado). */
+  guard?: () => Promise<boolean>;
 };
 
-const retryable = (e: ApiError) => e.status === 0 || e.status === 429 || e.status >= 500;
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const retryable = (e: ApiError) =>
+  (e.status === 0 && e.code !== 'aborted') || e.status === 429 || e.status >= 500;
+
+/** Espera `ms`; se `signal` abortar antes, rejeita na hora e cancela o timer. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(new ApiError(0, 'aborted'));
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new ApiError(0, 'aborted'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
 
 async function credentialsFor(
   auth: boolean | Credentials | undefined,
@@ -46,9 +66,13 @@ async function credentialsFor(
 }
 
 async function attempt<T>(url: string, init: ApiInit<T>, headers: Headers): Promise<T> {
-  const { schema, timeoutMs, ...rest } = init;
+  const { schema, timeoutMs, signal: outer, ...rest } = init;
   delete (rest as { auth?: unknown }).auth;
+  delete (rest as { guard?: unknown }).guard;
+  if (outer?.aborted) throw new ApiError(0, 'aborted');
   const controller = new AbortController();
+  const onOuterAbort = () => controller.abort();
+  outer?.addEventListener('abort', onOuterAbort, { once: true });
   const timer = setTimeout(() => controller.abort(), timeoutMs ?? SYNC_TIMEOUT_MS);
   let res: Response;
   try {
@@ -60,9 +84,11 @@ async function attempt<T>(url: string, init: ApiInit<T>, headers: Headers): Prom
   } catch (e) {
     const aborted =
       controller.signal.aborted || (e instanceof DOMException && e.name === 'AbortError');
+    if (outer?.aborted) throw new ApiError(0, 'aborted');
     throw new ApiError(0, aborted ? 'timeout' : 'network');
   } finally {
     clearTimeout(timer);
+    outer?.removeEventListener('abort', onOuterAbort);
   }
   if (!res.ok) {
     const body: unknown = await res.json().catch(() => null);
@@ -98,7 +124,10 @@ export async function apiFetch<T>(path: string, init: ApiInit<T>): Promise<T> {
     } catch (e) {
       const delay = delays[i];
       if (!(e instanceof ApiError) || !retryable(e) || delay === undefined) throw e;
-      await sleep(delay);
+      await sleep(delay, init.signal);
+      if (init.signal?.aborted || (init.guard && !(await init.guard()))) {
+        throw new ApiError(0, 'aborted');
+      }
     }
   }
 }

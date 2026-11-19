@@ -13,6 +13,7 @@ import { httpConfig } from '../../src/sync/http';
 import {
   deleteRemoteParticipant,
   getSyncSnapshot,
+  RestoreBlockedError,
   restoreFromServer,
   revokeConsent,
   syncNow,
@@ -393,5 +394,190 @@ describe('restoreFromServer', () => {
     handler = () => err(401, 'unauthorized');
     await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toMatchObject({ status: 401 });
     expect((await getSettings()).participant).toBeNull();
+  });
+
+  it('recusa quando há outro participante registrado com outbox pendente', async () => {
+    await consent();
+    await enqueue(1);
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toBeInstanceOf(RestoreBlockedError);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect((await getSettings()).participant?.code).toBe('NEXO-ABCD');
+  });
+
+  it('passa pela mesma trava do syncNow: só começa quando a sincronização termina', async () => {
+    await consent();
+    await enqueue(1);
+    const order: string[] = [];
+    let releasePush: () => void = () => undefined;
+    const pushGate = new Promise<void>((r) => (releasePush = r));
+    handler = async (url, init) => {
+      if (isPush(url, init)) {
+        order.push('push-start');
+        await pushGate;
+        order.push('push-end');
+        return json(200, { applied: 1, cursor: '1' });
+      }
+      const h = init.headers as Record<string, string>;
+      if (h['x-participant-code'] === 'NEXO-ABCD') return emptyPull();
+      order.push('restore-get');
+      return json(200, { changes: [], cursor: '4', hasMore: false });
+    };
+    const sync = syncNow();
+    await vi.waitFor(() => expect(order).toContain('push-start'));
+    // Mesmo participante: não é bloqueado pelo outbox, mas espera a trava.
+    const restore = restoreFromServer('NEXO-ABCD', KEY);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(order).not.toContain('restore-get');
+    releasePush();
+    await Promise.all([sync, restore]);
+    expect(order.indexOf('push-end')).toBeLessThan(
+      order.indexOf('restore-get') === -1 ? 99 : order.indexOf('restore-get'),
+    );
+  });
+});
+
+describe('revogação durante a sincronização', () => {
+  it('revogar na espera do retry cancela: nenhum segundo POST e retorna rápido', async () => {
+    await consent();
+    await enqueue(2);
+    httpConfig.retryDelaysMs = [400, 400];
+    let pushes = 0;
+    handler = (url, init) => {
+      if (isPush(url, init)) {
+        pushes++;
+        return err(503, 'unavailable');
+      }
+      return emptyPull();
+    };
+    const sync = syncNow();
+    await vi.waitFor(() => expect(pushes).toBe(1));
+    const started = Date.now();
+    await revokeConsent();
+    expect(Date.now() - started).toBeLessThan(200);
+    expect(await sync).toBe('skipped');
+    await new Promise((r) => setTimeout(r, 500));
+    expect(pushes).toBe(1);
+    expect(await outboxCount()).toBe(0);
+  });
+
+  it('revokeConsent com deleteRemote apaga no servidor depois de revogar', async () => {
+    await consent();
+    handler = (url, init) => {
+      expect(init.method).toBe('DELETE');
+      return json(204);
+    };
+    await revokeConsent({ deleteRemote: true });
+    const s = await getSettings();
+    expect(s.consent).toBeNull();
+    expect(s.participant?.registered).toBe(false);
+  });
+});
+
+describe('check-in com erros sem código de negócio', () => {
+  it.each([
+    [404, 'http_404'],
+    [404, 'expired'],
+    [410, 'invalid_code'],
+    [410, 'http_410'],
+  ])('%i com code %s mantém o check-in pendente', async (status, code) => {
+    await consent();
+    const c = await addCheckin('AAAAAA');
+    handler = (url, init) => {
+      if (url.endsWith('/v1/checkins')) return err(status, code);
+      if (init.method === 'POST') return json(200, { applied: 0, cursor: '0' });
+      return emptyPull();
+    };
+    await syncNow();
+    expect(await db.checkins.get(c.id)).toMatchObject({ status: 'pending', syncedAt: null });
+  });
+});
+
+describe('questionário com erro de validação', () => {
+  it('400 marca como tratado com conflito e não deixa a sincronização em erro', async () => {
+    await consent();
+    await saveQuestionnaireResponse({
+      id: 'q3',
+      kind: 'inicial',
+      version: getQuestionnaire('inicial').version,
+      answers: {},
+      score: null,
+      submittedAt: NOW,
+    });
+    handler = (url, init) => {
+      if (url.endsWith('/v1/questionnaires')) return err(400, 'validation');
+      if (init.method === 'POST') return json(200, { applied: 0, cursor: '0' });
+      return emptyPull();
+    };
+    expect(await syncNow()).toBe('synced');
+    expect(await db.questionnaireResponses.get('q3')).toMatchObject({ syncConflict: true });
+    expect((await db.questionnaireResponses.get('q3'))?.syncedAt).not.toBeNull();
+  });
+});
+
+describe('reenvio do histórico (backfill)', () => {
+  async function seedHistory() {
+    await db.habits.put(habitChange('h1').payload as never);
+    await db.questionnaireResponses.put({
+      id: 'qa',
+      kind: 'inicial',
+      version: getQuestionnaire('inicial').version,
+      answers: {},
+      score: null,
+      submittedAt: NOW,
+      syncedAt: NOW,
+    });
+    const c = await addCheckin('AAAAAA');
+    await db.checkins.update(c.id, {
+      status: 'confirmed',
+      workshop: 1,
+      date: '2026-11-17',
+      syncedAt: NOW,
+    });
+    return c.id;
+  }
+
+  function recordingHandler() {
+    const seen: string[] = [];
+    handler = (url, init) => {
+      seen.push(`${init.method} ${path(url)}`);
+      if (url.endsWith('/v1/participants')) return json(201, { code: 'NEXO-ABCD' });
+      if (url.endsWith('/v1/questionnaires')) return json(201, { score: null });
+      if (url.endsWith('/v1/checkins')) {
+        return json(200, { status: 'confirmed', workshop: 1, date: '2026-11-17' });
+      }
+      if (init.method === 'POST') return json(200, { applied: 1, cursor: '1' });
+      return emptyPull();
+    };
+    return seen;
+  }
+
+  it('reconsentir depois de revogar reenvia tudo e zera o cursor', async () => {
+    await consent();
+    await updateSettings({ syncCursor: '50' });
+    const checkinId = await seedHistory();
+    await revokeConsent();
+    await updateSettings({ consent: { granted: true, version: 1, at: NOW } });
+    const seen = recordingHandler();
+    expect(await syncNow()).toBe('synced');
+    expect(seen).toContain('POST /v1/sync');
+    expect(seen).toContain('GET /v1/sync?since=0');
+    expect(seen).toContain('POST /v1/questionnaires');
+    expect(seen).toContain('POST /v1/checkins');
+    expect((await db.checkins.get(checkinId))?.status).toBe('confirmed');
+    expect((await getSettings()).backfillPending).toBe(false);
+  });
+
+  it('apagar no servidor e sincronizar de novo registra e reenvia o histórico', async () => {
+    await consent();
+    await seedHistory();
+    handler = () => json(204, null);
+    await deleteRemoteParticipant();
+    expect((await getSettings()).participant?.registered).toBe(false);
+    const seen = recordingHandler();
+    expect(await syncNow()).toBe('synced');
+    expect(seen[0]).toBe('POST /v1/participants');
+    expect(seen).toContain('POST /v1/sync');
+    expect(seen).toContain('POST /v1/questionnaires');
+    expect(seen).toContain('POST /v1/checkins');
   });
 });

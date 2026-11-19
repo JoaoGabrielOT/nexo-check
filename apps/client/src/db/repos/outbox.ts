@@ -39,3 +39,45 @@ export async function clearOutbox(): Promise<void> {
 export function outboxCount(): Promise<number> {
   return db.outbox.count();
 }
+
+/**
+ * Reenvio do histórico (reconsentimento ou novo cadastro no servidor): refaz o outbox com todas as
+ * linhas sincronizáveis, zera o cursor e marca respostas e check-ins como não enviados. O servidor é
+ * idempotente por participante, então reenviar é inofensivo.
+ */
+export async function backfillHistory(): Promise<void> {
+  await db.transaction(
+    'rw',
+    [
+      db.habits,
+      db.habitEntries,
+      db.dailyLogs,
+      db.outbox,
+      db.settings,
+      db.questionnaireResponses,
+      db.checkins,
+    ],
+    async () => {
+      await db.outbox.clear();
+      for (const h of await db.habits.toArray()) await enqueueIfConsented('habit', h);
+      for (const e of await db.habitEntries.toArray()) await enqueueIfConsented('habitEntry', e);
+      for (const l of await db.dailyLogs.toArray()) await enqueueIfConsented('dailyLog', l);
+      await db.questionnaireResponses.toCollection().modify((r) => {
+        r.syncedAt = null;
+        delete r.syncConflict;
+      });
+      await db.checkins.toCollection().modify((c) => {
+        c.status = 'pending';
+        c.reason = null;
+        c.syncedAt = null;
+      });
+      const row = await db.settings.get('app');
+      if (row) {
+        await db.settings.put({
+          key: 'app',
+          value: { ...row.value, syncCursor: null, backfillPending: false },
+        });
+      }
+    },
+  );
+}
