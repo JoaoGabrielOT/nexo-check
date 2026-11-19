@@ -7,9 +7,12 @@ services:
     runtime: node
     plan: free
     region: virginia
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter api build
+    # O corepack embutido no Node 22.12 não conhece as chaves de assinatura atuais do npm.
+    # NODE_ENV=production faria o pnpm pular as devDependencies (tsup, prisma) no build.
+    buildCommand: npm install -g corepack@latest && corepack enable && NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter api build
     # O plano gratuito não tem pre-deploy: as migrações rodam antes de subir o servidor.
-    startCommand: pnpm --filter api exec prisma migrate deploy && pnpm --filter api start
+    # Sem pnpm no start: o cache do corepack não é garantido em tempo de execução.
+    startCommand: cd apps/api && ./node_modules/.bin/prisma migrate deploy && node dist/server.js
     healthCheckPath: /health
     autoDeploy: true
     envVars:
