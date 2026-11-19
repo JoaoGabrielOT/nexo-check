@@ -65,6 +65,8 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(helmet);
   await app.register(cors, {
     origin: (origin, cb) => cb(null, origin === undefined || origins.has(origin)),
+    // O painel admin lê o nome do CSV neste cabeçalho (origem diferente da API).
+    exposedHeaders: ['content-disposition'],
   });
   await app.register(rateLimit, {
     global: true,
