@@ -358,6 +358,40 @@ describe('admin', () => {
       }
     });
 
+    it('educativo_pct trunca (20 de 30 acertos = 66, não 67)', async () => {
+      const p = await newParticipant('NEXO-AB23');
+      const right = {
+        edu_bdnf: 'proteina',
+        edu_bdnf_sangue: 'nao',
+        edu_hipocampo: 'memoria',
+        edu_recompensa: 'motivacao',
+      };
+      const eight = {
+        ...right,
+        edu_prefrontal: 'executivas',
+        edu_intensidade: 'leve_moderada',
+        edu_modalidade: 'estudada',
+        edu_huang: 'estudos_59',
+      };
+      // 10 perguntas por resposta: 8 + 8 + 4 acertos em 30 (66,67%).
+      const answers = [eight, eight, right];
+      for (const [i, a] of answers.entries()) {
+        await prisma.questionnaireResponse.create({
+          data: {
+            participantId: p.id,
+            clientId: `educativo-${i}`,
+            kind: 'educativo',
+            version: 1,
+            answers: a,
+            submittedAt: new Date(),
+          },
+        });
+      }
+      const res = await app.inject({ method: 'GET', url: '/v1/admin/export.csv', headers: auth() });
+      const line = res.body.split('\r\n').find((l) => l.startsWith('NEXO-AB23;')) as string;
+      expect(line.split(';')[2]).toBe('66');
+    });
+
     it('CSV tem BOM, cabeçalho exato, uma linha por participante e nenhum texto livre', async () => {
       await seedPilot();
       const res = await app.inject({

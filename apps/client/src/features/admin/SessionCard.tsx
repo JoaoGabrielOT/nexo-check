@@ -45,10 +45,8 @@ function Projection({ session, open, onOpenChange }: ProjectionProps) {
         <DialogTitle className="text-2xl sm:text-3xl">
           {t('admin.sessions.projectTitle', { n })} ({ddmm(session.date)})
         </DialogTitle>
-        <p
-          aria-label={t('admin.sessions.code')}
-          className="font-mono text-[clamp(3rem,15vw,9rem)] leading-none font-extrabold tracking-[0.06em] tabular-nums"
-        >
+        <p className="font-mono text-[clamp(3rem,15vw,9rem)] leading-none font-extrabold tracking-[0.06em] tabular-nums">
+          <span className="sr-only">{t('admin.sessions.code')}: </span>
           {session.code}
         </p>
         <QrImage
@@ -127,7 +125,7 @@ export function SessionCard({
   return (
     <Tile
       tone={n === 1 ? 'sleep' : 'breathing'}
-      label={`${t('workshop.label', { n })} em ${date}`}
+      label={t('admin.sessions.tileLabel', { n, date })}
       className="gap-4"
     >
       <div>
@@ -139,10 +137,8 @@ export function SessionCard({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-        <p
-          aria-label={t('admin.sessions.code')}
-          className="font-mono text-[clamp(2.75rem,12vw,4.5rem)] leading-none font-extrabold tracking-[0.06em] tabular-nums"
-        >
+        <p className="font-mono text-[clamp(2.75rem,12vw,4.5rem)] leading-none font-extrabold tracking-[0.06em] tabular-nums">
+          <span className="sr-only">{t('admin.sessions.code')}: </span>
           {session.code}
         </p>
         <QrImage

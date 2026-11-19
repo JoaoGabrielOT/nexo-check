@@ -143,7 +143,7 @@ export function SessionsPage() {
       {sessions && sessions.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
           {sessions.map((s) => (
-            <SessionCard key={s.id} session={s} onChanged={load} />
+            <SessionCard key={`${s.id}:${s.manualCount}`} session={s} onChanged={load} />
           ))}
         </div>
       )}

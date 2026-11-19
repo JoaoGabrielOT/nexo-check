@@ -125,7 +125,7 @@ function participantRow(
   return {
     codigo: safe(p.code),
     checkins: String(p.checkins),
-    educativo_pct: asked === 0 ? '' : String(Math.floor((correct / asked) * 100)),
+    educativo_pct: asked === 0 ? '' : String(Math.floor((correct * 100) / asked)),
     satisfacao_media: num(mean(satisfactionValues(defs.final, p.final))),
     adesao: answered.length === 0 ? '' : answered.includes('sim') ? 'sim' : 'nao',
     estresse_inicial: num(stress.questionnaireBefore),

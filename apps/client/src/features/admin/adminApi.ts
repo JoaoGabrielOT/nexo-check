@@ -66,6 +66,7 @@ export const adminLogin = (password: string) =>
     method: 'POST',
     body: JSON.stringify({ password }),
     schema: adminLoginResponse,
+    retry: false,
   }).then((r) => r.token);
 
 export const listSessions = (token: string) =>
@@ -74,7 +75,12 @@ export const listSessions = (token: string) =>
 export const createSession = (
   token: string,
   body: { workshop: 1 | 2; date: string; location: string },
-) => apiFetch('/v1/admin/sessions', { ...jsonInit(token, 'POST', body), schema: sessionView });
+) =>
+  apiFetch('/v1/admin/sessions', {
+    ...jsonInit(token, 'POST', body),
+    schema: sessionView,
+    retry: false,
+  });
 
 export const setManualCount = (token: string, id: string, manualCount: number) =>
   apiFetch(`/v1/admin/sessions/${encodeURIComponent(id)}/manual`, {
@@ -91,16 +97,33 @@ export const deleteSession = (token: string, id: string) =>
 export const getStats = (token: string) =>
   apiFetch('/v1/admin/stats', { ...jsonInit(token, 'GET'), schema: stats });
 
+const CSV_TIMEOUT_MS = 60_000;
+
 /** Baixa o CSV com o token; o nome vem do cabeçalho do servidor. O BOM é mantido (Excel). */
 export async function fetchCsv(token: string): Promise<{ name: string; content: string }> {
-  let res: Response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CSV_TIMEOUT_MS);
   try {
-    res = await fetch(`${API_URL}/v1/admin/export.csv`, { headers: bearer(token) });
-  } catch {
-    throw new ApiError(0, 'network');
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/v1/admin/export.csv`, {
+        headers: bearer(token),
+        signal: controller.signal,
+      });
+    } catch {
+      throw new ApiError(0, controller.signal.aborted ? 'timeout' : 'network');
+    }
+    if (!res.ok) throw new ApiError(res.status, `http_${res.status}`);
+    let buffer: ArrayBuffer;
+    try {
+      buffer = await res.arrayBuffer();
+    } catch {
+      throw new ApiError(0, controller.signal.aborted ? 'timeout' : 'network');
+    }
+    const content = new TextDecoder('utf-8', { ignoreBOM: true }).decode(buffer);
+    const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1];
+    return { name: name ?? 'nexo-indicadores.csv', content };
+  } finally {
+    clearTimeout(timer);
   }
-  if (!res.ok) throw new ApiError(res.status, `http_${res.status}`);
-  const content = new TextDecoder('utf-8', { ignoreBOM: true }).decode(await res.arrayBuffer());
-  const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1];
-  return { name: name ?? 'nexo-indicadores.csv', content };
 }

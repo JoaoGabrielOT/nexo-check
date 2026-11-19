@@ -88,6 +88,34 @@ describe('painel admin', () => {
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
+  it('login com 429 mostra "Muitas tentativas" na hora, com uma única chamada', async () => {
+    httpConfig.retryDelaysMs = [0, 0];
+    routeFetch({
+      'POST /v1/admin/login': () => json(429, { error: 'rate_limited', message: 'Calma.' }),
+    });
+    await login();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Muitas tentativas');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('criar sessão com 503 não retenta (sem sessões duplicadas) e mostra o erro', async () => {
+    httpConfig.retryDelaysMs = [0, 0];
+    sessionStorage.setItem(TOKEN_KEY, 'tok');
+    routeFetch({
+      'GET /v1/admin/stats': () => json(200, stats),
+      'GET /v1/admin/sessions': () => json(200, []),
+      'POST /v1/admin/sessions': () => json(503, { error: 'unavailable', message: 'Fora do ar.' }),
+    });
+    const user = userEvent.setup();
+    render(<AdminRoutes />);
+    await user.click(await screen.findByRole('tab', { name: 'Sessões' }));
+    await user.type(await screen.findByLabelText('Local'), 'Sala 12');
+    await user.click(screen.getByRole('button', { name: 'Criar sessão' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível criar a sessão');
+    const posts = fetchMock.mock.calls.filter(([, i]) => i?.method === 'POST');
+    expect(posts).toHaveLength(1);
+  });
+
   it('login com sucesso guarda o token só no sessionStorage e abre os indicadores', async () => {
     routeFetch({
       'POST /v1/admin/login': () => json(200, { token: 'tok-123' }),

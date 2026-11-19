@@ -34,6 +34,8 @@ export type ApiInit<T> = RequestInit & {
   signal?: AbortSignal;
   /** Chamado antes de cada nova tentativa; `false` cancela (ex.: consentimento revogado). */
   guard?: () => Promise<boolean>;
+  /** `false` desliga as novas tentativas (ex.: POST não idempotente, login). Padrão: `true`. */
+  retry?: boolean;
 };
 
 const retryable = (e: ApiError) =>
@@ -69,6 +71,7 @@ async function attempt<T>(url: string, init: ApiInit<T>, headers: Headers): Prom
   const { schema, timeoutMs, signal: outer, ...rest } = init;
   delete (rest as { auth?: unknown }).auth;
   delete (rest as { guard?: unknown }).guard;
+  delete (rest as { retry?: unknown }).retry;
   if (outer?.aborted) throw new ApiError(0, 'aborted');
   const controller = new AbortController();
   const onOuterAbort = () => controller.abort();
@@ -123,7 +126,8 @@ export async function apiFetch<T>(path: string, init: ApiInit<T>): Promise<T> {
       return await attempt(url, init, headers);
     } catch (e) {
       const delay = delays[i];
-      if (!(e instanceof ApiError) || !retryable(e) || delay === undefined) throw e;
+      if (!(e instanceof ApiError) || init.retry === false || !retryable(e) || delay === undefined)
+        throw e;
       await sleep(delay, init.signal);
       if (init.signal?.aborted || (init.guard && !(await init.guard()))) {
         throw new ApiError(0, 'aborted');

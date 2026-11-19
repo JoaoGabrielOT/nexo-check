@@ -517,6 +517,7 @@
       "loadFailed": "Não foi possível carregar as sessões.",
       "retry": "Tentar de novo",
       "code": "Código",
+      "tileLabel": "Oficina {{n}} em {{date}}",
       "qrAlt": "QR code de check-in da oficina {{n}} em {{date}}",
       "checkins_other": "{{count}} check-ins",
       "checkins_one": "{{count}} check-in",
