@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createHmac } from 'node:crypto';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaClient } from '../src/db';
 import { makeTestApp, testEnv } from './helpers';
 
@@ -30,7 +31,8 @@ describe('admin', () => {
     });
 
   beforeAll(async () => {
-    ({ app, prisma, reset } = await makeTestApp());
+    // Limite alto: os testes fazem vários logins e o limitador é por IP.
+    ({ app, prisma, reset } = await makeTestApp({}, undefined, 1000));
     token = (await login(testEnv.ADMIN_PASSWORD)).json().token;
   });
   afterAll(async () => {
@@ -70,6 +72,33 @@ describe('admin', () => {
         headers: { authorization: `Bearer ${forged}` },
       });
       expect(res.statusCode).toBe(401);
+    });
+
+    const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const sign = (alg: 'HS256' | 'HS512', claims: object) => {
+      const head = `${b64({ alg, typ: 'JWT' })}.${b64(claims)}`;
+      const mac = createHmac(alg === 'HS256' ? 'sha256' : 'sha512', testEnv.ADMIN_JWT_SECRET)
+        .update(head)
+        .digest('base64url');
+      return `${head}.${mac}`;
+    };
+    const statusWith = async (jwt: string) =>
+      (
+        await app.inject({
+          method: 'GET',
+          url: '/v1/admin/stats',
+          headers: { authorization: `Bearer ${jwt}` },
+        })
+      ).statusCode;
+
+    it('token sem exp é recusado', async () => {
+      expect(await statusWith(sign('HS256', { sub: 'admin' }))).toBe(401);
+    });
+
+    it('token assinado com HS512 (mesmo segredo) é recusado', async () => {
+      const exp = Math.floor(Date.now() / 1000) + 600;
+      expect(await statusWith(sign('HS256', { sub: 'admin', exp }))).toBe(200);
+      expect(await statusWith(sign('HS512', { sub: 'admin', exp }))).toBe(401);
     });
 
     it('token assinado com outro segredo é recusado', async () => {
@@ -309,6 +338,24 @@ describe('admin', () => {
         dailyLast7: 1,
       });
       expect(byId(out, 'activity_frequency').detail).toEqual({ before: 1, after: 3 });
+    });
+
+    it('nome do CSV usa a data de São Paulo (23:30 local ainda é o mesmo dia)', async () => {
+      // 2026-11-21T02:30Z = 20/11 23:30 em America/Sao_Paulo (UTC-3).
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-21T02:30:00Z') });
+      try {
+        const fresh = (await login(testEnv.ADMIN_PASSWORD)).json().token;
+        const res = await app.inject({
+          method: 'GET',
+          url: '/v1/admin/export.csv',
+          headers: { authorization: `Bearer ${fresh}` },
+        });
+        expect(res.headers['content-disposition']).toBe(
+          'attachment; filename="nexo-indicadores-2026-11-20.csv"',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('CSV tem BOM, cabeçalho exato, uma linha por participante e nenhum texto livre', async () => {

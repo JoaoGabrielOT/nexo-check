@@ -6,7 +6,12 @@ export const ADMIN_SUBJECT = 'admin';
 
 /** Registra o `@fastify/jwt` com o segredo do admin (`app.jwt.sign` / `req.jwtVerify`). */
 export async function registerAdminJwt(app: FastifyInstance, secret: string): Promise<void> {
-  await app.register(fastifyJwt, { secret });
+  await app.register(fastifyJwt, {
+    secret,
+    // Fixa o algoritmo e exige expiração: nada de `alg` escolhido pelo token nem token eterno.
+    sign: { algorithm: 'HS256' },
+    verify: { algorithms: ['HS256'], requiredClaims: ['exp'] },
+  });
 }
 
 /** preHandler: exige JWT válido emitido por `/admin/login` (`sub === 'admin'`), senão 401. */

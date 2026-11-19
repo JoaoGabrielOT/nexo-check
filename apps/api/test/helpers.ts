@@ -19,6 +19,7 @@ export const testEnv: Env = {
 export async function makeTestApp(
   overrides: Partial<Env> = {},
   rateLimitMax?: number,
+  loginLimitMax?: number,
 ): Promise<{ app: FastifyInstance; prisma: PrismaClient; reset: () => Promise<void> }> {
   const databaseUrl = inject('databaseUrl');
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
@@ -26,6 +27,7 @@ export async function makeTestApp(
     prisma,
     env: { ...testEnv, DATABASE_URL: databaseUrl, ...overrides },
     ...(rateLimitMax ? { rateLimitMax } : {}),
+    ...(loginLimitMax ? { loginLimitMax } : {}),
   });
   const reset = async () => {
     await prisma.$executeRawUnsafe(

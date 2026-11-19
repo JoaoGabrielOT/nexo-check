@@ -26,6 +26,9 @@ const HOUR_MS = 3_600_000;
 // é 02:59:59.999Z do dia seguinte, ou seja, meia-noite UTC do dia + 27 h - 1 ms.
 const SAO_PAULO_END_OF_DAY_MS = 27 * HOUR_MS - 1;
 
+// `en-CA` formata como AAAA-MM-DD; o nome do arquivo segue o dia de São Paulo, não o de UTC.
+const SAO_PAULO_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
+
 const sha256 = (s: string): Buffer => createHash('sha256').update(s).digest();
 
 const idParams = z.object({ id: z.string().min(1).max(64) });
@@ -122,7 +125,7 @@ function participantRow(
   return {
     codigo: safe(p.code),
     checkins: String(p.checkins),
-    educativo_pct: asked === 0 ? '' : String(Math.round((correct / asked) * 100)),
+    educativo_pct: asked === 0 ? '' : String(Math.floor((correct / asked) * 100)),
     satisfacao_media: num(mean(satisfactionValues(defs.final, p.final))),
     adesao: answered.length === 0 ? '' : answered.includes('sim') ? 'sim' : 'nao',
     estresse_inicial: num(stress.questionnaireBefore),
@@ -260,7 +263,7 @@ export async function adminRoutes(
     );
     // Segundo bloco sem o BOM (já veio no primeiro), separado por uma linha em branco.
     const body = `${people}\r\n${summary.slice(1)}`;
-    const day = new Date().toISOString().slice(0, 10);
+    const day = SAO_PAULO_DAY.format(new Date());
     return reply
       .header('content-type', 'text/csv; charset=utf-8')
       .header('content-disposition', `attachment; filename="nexo-indicadores-${day}.csv"`)
