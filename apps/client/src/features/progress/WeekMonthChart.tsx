@@ -95,7 +95,11 @@ export function WeekMonthChart({
       </div>
       <div className="h-64 w-full sm:h-72" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <ComposedChart data={days} margin={{ top: 24, right: 4, bottom: 0, left: 0 }}>
+          <ComposedChart
+            accessibilityLayer={false}
+            data={days}
+            margin={{ top: 24, right: 4, bottom: 0, left: 0 }}
+          >
             <CartesianGrid vertical={false} stroke="var(--color-text)" strokeOpacity={0.1} />
             <XAxis
               dataKey="date"

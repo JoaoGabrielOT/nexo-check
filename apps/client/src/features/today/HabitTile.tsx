@@ -259,7 +259,7 @@ export function HabitTile({
               aria-label={t('today.addMinutes', { minutes: WIDE_STEP, name })}
               onClick={() => onAppendBlock(WIDE_STEP)}
             >
-              +{WIDE_STEP} min
+              +{WIDE_STEP} minutos
             </QuickAddButton>
             <BlockChips
               blocks={entry?.blocks ?? []}
