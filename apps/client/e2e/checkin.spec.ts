@@ -1,4 +1,4 @@
-import { completeOnboarding, expect, test } from './fixtures';
+import { completeOnboarding, expect, syncFromSettings, test } from './fixtures';
 
 test('check-in pelo link do QR fica pendente e é confirmado depois da sincronização', async ({
   page,
@@ -6,7 +6,9 @@ test('check-in pelo link do QR fica pendente e é confirmado depois da sincroniz
 }) => {
   api.seedSession('ABC234');
   await completeOnboarding(page, 'accept');
-  await expect.poll(() => api.received('POST /v1/participants').length).toBeGreaterThan(0);
+  // Registra o participante já agora, sem depender do debounce de 5 s das escritas.
+  await syncFromSettings(page);
+  expect(api.received('POST /v1/participants')).toHaveLength(1);
 
   api.holdCheckins();
   await page.goto('/checkin?c=ABC234');

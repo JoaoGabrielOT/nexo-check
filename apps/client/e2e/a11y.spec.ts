@@ -22,9 +22,9 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 const SCREENS = [
   { name: 'Hoje', path: '/', ready: 'Movimento do dia' },
   { name: 'Registro', path: '/registro', ready: 'Estresse percebido' },
-  { name: 'Progresso', path: '/progresso', ready: null },
-  { name: 'Aprender', path: '/aprender', ready: null },
-  { name: 'Projeto', path: '/projeto', ready: null },
+  { name: 'Progresso', path: '/progresso', ready: null, content: 'caption' },
+  { name: 'Aprender', path: '/aprender', ready: null, content: 'mecanismos' },
+  { name: 'Projeto', path: '/projeto', ready: 'Questionário educativo' },
   { name: 'Configurações', path: '/config', ready: 'Aparência' },
 ] as const;
 
@@ -36,6 +36,15 @@ test.describe('acessibilidade (axe)', () => {
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       if (screen.ready)
         await expect(page.getByRole('region', { name: screen.ready })).toBeVisible();
+      // Espera o conteúdo renderizado, para o axe não rodar numa tela ainda vazia.
+      if ('content' in screen && screen.content === 'caption') {
+        await expect(
+          page.getByRole('table', { name: 'Minutos de movimento e estresse percebido por dia' }),
+        ).toBeAttached();
+      }
+      if ('content' in screen && screen.content === 'mecanismos') {
+        await expect(page.getByRole('heading', { name: 'Mecanismos' })).toBeVisible();
+      }
       await expectNoSeriousViolations(page);
     });
   }
