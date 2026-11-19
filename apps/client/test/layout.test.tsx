@@ -63,6 +63,15 @@ describe('layout', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'conteudo');
   });
 
+  it('/admin não mostra a navegação nem o cabeçalho do app', async () => {
+    sessionStorage.clear();
+    renderAt('/admin');
+    expect(await screen.findByLabelText('Senha')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Configurações' })).toBeNull();
+    expect(screen.getByText('Painel do grupo')).toBeInTheDocument();
+  });
+
   describe('fundo do cabeçalho (sentinela no topo do main)', () => {
     type FakeObserver = {
       cb: IntersectionObserverCallback;
@@ -187,6 +196,6 @@ describe('layout', () => {
 
   it('renderiza a rota admin de forma preguiçosa', async () => {
     renderAt('/admin');
-    expect(await screen.findByRole('heading', { name: /administração/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Acesso do grupo' })).toBeInTheDocument();
   });
 });

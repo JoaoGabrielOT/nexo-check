@@ -127,13 +127,15 @@ export function Layout() {
   const headerRef = useRef<HTMLElement>(null);
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const inOnboarding = pathname.startsWith('/onboarding');
+  // O painel admin tem topo e abas próprios: sem cabeçalho nem navegação do app.
+  const inAdmin = pathname.startsWith('/admin');
   // Mesmo limite do lg: com o menu lateral, o header é fixed e fica fora da área do conteúdo.
   const wide = useMediaQuery('(min-width: 1024px)');
-  const scrolled = useContentUnderHeader(sentinel, headerRef, wide && !inOnboarding);
+  const scrolled = useContentUnderHeader(sentinel, headerRef, wide && !inOnboarding && !inAdmin);
   // Sem configurações carregadas não renderiza nada, para não piscar um redirecionamento errado.
   if (!settings) return null;
   if (target) return confirmed === target ? <Navigate to={target} replace /> : null;
-  const withNav = !inOnboarding;
+  const withNav = !inOnboarding && !inAdmin;
   return (
     <>
       <a
@@ -146,34 +148,36 @@ export function Layout() {
         {t('a11y.skipToContent')}
       </a>
       <Wallpaper />
-      <header
-        ref={headerRef}
-        data-scrolled={scrolled}
-        className={cn(
-          'sticky top-0 z-40 flex items-center justify-between border-b border-transparent px-[6vw] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 motion-safe:transition-colors',
-          scrolled && 'border-border/12 bg-bg',
-          withNav &&
-            'lg:fixed lg:left-0 lg:w-60 lg:border-transparent lg:bg-transparent lg:pt-6 lg:pr-3 lg:pl-8',
-        )}
-      >
-        <span className="text-lg font-extrabold tracking-[-0.03em]">{t('brand')}</span>
-        <div className="flex items-center gap-1">
-          <SyncStatusPill className="lg:hidden" />
-          <NavLink
-            to="/config"
-            aria-label={t('nav.settings')}
-            className={({ isActive }) =>
-              cn(
-                'flex min-h-11 min-w-11 items-center justify-center rounded-full text-text transition-colors hover:bg-text/8',
-                isActive && 'bg-text/10',
-                focusRing,
-              )
-            }
-          >
-            <Settings aria-hidden="true" className="size-6" />
-          </NavLink>
-        </div>
-      </header>
+      {!inAdmin && (
+        <header
+          ref={headerRef}
+          data-scrolled={scrolled}
+          className={cn(
+            'sticky top-0 z-40 flex items-center justify-between border-b border-transparent px-[6vw] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 motion-safe:transition-colors',
+            scrolled && 'border-border/12 bg-bg',
+            withNav &&
+              'lg:fixed lg:left-0 lg:w-60 lg:border-transparent lg:bg-transparent lg:pt-6 lg:pr-3 lg:pl-8',
+          )}
+        >
+          <span className="text-lg font-extrabold tracking-[-0.03em]">{t('brand')}</span>
+          <div className="flex items-center gap-1">
+            <SyncStatusPill className="lg:hidden" />
+            <NavLink
+              to="/config"
+              aria-label={t('nav.settings')}
+              className={({ isActive }) =>
+                cn(
+                  'flex min-h-11 min-w-11 items-center justify-center rounded-full text-text transition-colors hover:bg-text/8',
+                  isActive && 'bg-text/10',
+                  focusRing,
+                )
+              }
+            >
+              <Settings aria-hidden="true" className="size-6" />
+            </NavLink>
+          </div>
+        </header>
+      )}
       {withNav && (
         <nav
           aria-label={t('a11y.mainNav')}

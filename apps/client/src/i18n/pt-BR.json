@@ -23,7 +23,7 @@
     "checkin": "Check-in",
     "settings": "Configurações",
     "onboarding": "Boas-vindas",
-    "admin": "Administração"
+    "admin": "Painel do grupo"
   },
   "errors": {
     "backup": {
@@ -483,6 +483,91 @@
       "pending": "Pendente: {{count}}",
       "offline": "Offline",
       "error": "Erro"
+    }
+  },
+  "admin": {
+    "brand": "Painel do grupo",
+    "logout": "Sair",
+    "tabs": {
+      "label": "Seções do painel",
+      "sessions": "Sessões",
+      "indicators": "Indicadores"
+    },
+    "login": {
+      "title": "Acesso do grupo",
+      "hint": "Área restrita a quem coordena as oficinas.",
+      "password": "Senha",
+      "submit": "Entrar",
+      "wrong": "Senha incorreta.",
+      "tooMany": "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
+      "failed": "Não foi possível entrar. Confira a conexão e tente de novo."
+    },
+    "sessions": {
+      "newTitle": "Nova sessão",
+      "workshop": "Oficina",
+      "workshopN": "Oficina {{n}}",
+      "date": "Data",
+      "location": "Local",
+      "create": "Criar sessão",
+      "creating": "Criando...",
+      "created": "Sessão criada.",
+      "createFailed": "Não foi possível criar a sessão. Confira os campos e tente de novo.",
+      "listTitle": "Sessões",
+      "empty": "Nenhuma sessão ainda. Crie a primeira acima para gerar o código e o QR.",
+      "loadFailed": "Não foi possível carregar as sessões.",
+      "retry": "Tentar de novo",
+      "code": "Código",
+      "qrAlt": "QR code de check-in da oficina {{n}} em {{date}}",
+      "checkins_other": "{{count}} check-ins",
+      "checkins_one": "{{count}} check-in",
+      "project": "Projetar",
+      "projectTitle": "Check-in da oficina {{n}}",
+      "projectHint": "Abra a câmera, aponte para o QR ou digite o código em Projeto → Check-in",
+      "closeProjection": "Fechar projeção",
+      "copyLink": "Copiar link",
+      "copied": "Link copiado.",
+      "copyFailed": "Não foi possível copiar. Copie o link manualmente.",
+      "manual": "Presença manual",
+      "manualMinus": "Diminuir presença manual",
+      "manualPlus": "Aumentar presença manual",
+      "save": "Salvar",
+      "saved": "Presença manual salva.",
+      "saveFailed": "Não foi possível salvar a presença manual.",
+      "delete": "Excluir sessão",
+      "deleteBlocked": "Sessões com check-ins não podem ser excluídas.",
+      "deleteConfirm": "Excluir a sessão da oficina {{n}} em {{date}}? Essa ação não pode ser desfeita.",
+      "deleteYes": "Excluir",
+      "deleteNo": "Cancelar",
+      "deleted": "Sessão excluída.",
+      "deleteFailed": "Não foi possível excluir a sessão."
+    },
+    "indicators": {
+      "title": "Indicadores",
+      "refresh": "Atualizar",
+      "export": "Exportar CSV",
+      "exportFailed": "Não foi possível exportar o CSV.",
+      "loadFailed": "Não foi possível carregar os indicadores.",
+      "updatedAt": "Atualizado às {{time}}",
+      "totals": "{{participants}} participantes cadastrados, {{sessions}} sessões",
+      "target": "Meta: {{target}}",
+      "n": "n = {{n}}",
+      "smallSample": "amostra pequena (n < 10)",
+      "status": {
+        "met": "Meta atingida",
+        "below": "Abaixo da meta",
+        "comparison": "Comparação (sem meta)"
+      },
+      "names": {
+        "participation": "Participação",
+        "comprehension": "Compreensão",
+        "acceptance": "Aceitação",
+        "adherence": "Adesão ao movimento",
+        "stress": "Estresse e bem-estar",
+        "activity_frequency": "Frequência de atividade física"
+      },
+      "participationDetail": "{{checkins}} check-ins + {{manual}} manuais",
+      "checklistMovement": "{{percent}}% com ao menos um registro de movimento no checklist",
+      "note": "Os indicadores descrevem o grupo e não provam causa e efeito."
     }
   }
 }
