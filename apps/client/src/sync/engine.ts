@@ -301,7 +301,37 @@ async function sendCheckins(soft: (e: unknown) => void): Promise<void> {
 
 // --- API pública -------------------------------------------------------------------------------
 
-async function run(): Promise<SyncResult> {
+/**
+ * Com `registered` e 401, a conta pode ter sido apagada no servidor (backup restaurado depois
+ * de uma exclusão). Tenta cadastrar de novo com o mesmo código e chave: 201 = conta nova, então
+ * o histórico precisa ser reenviado; qualquer outra resposta mantém o erro de autenticação.
+ */
+async function reregister(): Promise<boolean> {
+  try {
+    const { consent, participant } = await requireConsent();
+    if (!consent || !participant.registered) return false;
+    await call('/v1/participants', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: participant.code,
+        key: participant.key,
+        consentVersion: consent.version,
+      }),
+      schema: anyAck,
+      retryOn429: false,
+    });
+    await updateSettings({
+      syncCursor: null,
+      consentSyncedVersion: undefined,
+      backfillPending: true,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function run(allowReregister = true): Promise<SyncResult> {
   const settings = await getSettings();
   if (!isConsented(settings)) {
     setSnapshot({ phase: 'idle', error: null });
@@ -352,6 +382,9 @@ async function run(): Promise<SyncResult> {
       setSnapshot({ phase: 'offline', error: null });
       return 'offline';
     }
+    if (allowReregister && e instanceof ApiError && e.status === 401 && (await reregister())) {
+      return run(false);
+    }
     console.warn('Sincronização falhou', e);
     setSnapshot({ phase: 'error', error: errorCodeOf(e) });
     return 'error';
@@ -370,7 +403,7 @@ let inflight: Promise<SyncResult> | null = null;
 
 /** Uma execução por vez: chamadas simultâneas esperam a mesma promessa. */
 export function syncNow(): Promise<SyncResult> {
-  inflight ??= withLock(run).finally(() => {
+  inflight ??= withLock(() => run()).finally(() => {
     inflight = null;
     current = null;
   });

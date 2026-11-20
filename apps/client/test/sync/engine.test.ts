@@ -288,6 +288,37 @@ describe('syncNow', () => {
     expect(getSyncSnapshot().error).toBe('unauthorized');
   });
 
+  it('401 com conta apagada no servidor: recadastra com o mesmo código e chave e refaz o histórico', async () => {
+    await consent();
+    await updateSettings({ syncCursor: '77' });
+    let accountExists = false;
+    const posted: { code: string; key: string }[] = [];
+    handler = (url, init) => {
+      if (url.endsWith('/v1/participants')) {
+        posted.push(JSON.parse(String(init.body)) as { code: string; key: string });
+        accountExists = true;
+        return json(201, { code: 'NEXO-ABCD' });
+      }
+      if (!accountExists) return err(401, 'unauthorized');
+      if (isPush(url, init)) return json(200, { applied: 0, cursor: '9' });
+      return emptyPull();
+    };
+    expect(await syncNow()).toBe('synced');
+    expect(posted).toEqual([expect.objectContaining({ code: 'NEXO-ABCD', key: KEY })]);
+    const s = await getSettings();
+    expect(s.participant).toEqual({ code: 'NEXO-ABCD', key: KEY, registered: true });
+    expect(s.backfillPending).toBeFalsy();
+  });
+
+  it('401 e o recadastro dá code_taken: mantém o erro unauthorized', async () => {
+    await consent();
+    handler = (url) =>
+      url.endsWith('/v1/participants') ? err(409, 'code_taken') : err(401, 'unauthorized');
+    expect(await syncNow()).toBe('error');
+    expect(getSyncSnapshot().error).toBe('unauthorized');
+    expect((await getSettings()).participant?.registered).toBe(true);
+  });
+
   it('offline: não chama fetch', async () => {
     await consent();
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
