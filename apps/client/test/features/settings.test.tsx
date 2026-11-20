@@ -19,6 +19,12 @@ import {
 import { ConfigPage } from '../../src/features/settings/ConfigPage';
 import { TodayPage } from '../../src/features/today';
 import * as files from '../../src/platform/files';
+import * as ui from '@nexo/ui';
+
+vi.mock('@nexo/ui', async (orig) => {
+  const m = await orig<typeof import('@nexo/ui')>();
+  return { ...m, toast: vi.fn(m.toast) };
+});
 
 vi.mock('../../src/platform/files', () => ({
   downloadFile: vi.fn(),
@@ -127,6 +133,17 @@ describe('editor de hábitos', () => {
 });
 
 describe('dados', () => {
+  it('falha ao escolher ou ler o arquivo (nativo) avisa e não altera os dados', async () => {
+    const user = userEvent.setup();
+    vi.mocked(files.pickFile).mockRejectedValue(new Error('fs negado'));
+    renderConfig();
+    await user.click(await screen.findByRole('button', { name: 'Importar backup' }));
+    await waitFor(() =>
+      expect(ui.toast).toHaveBeenCalledWith('Não foi possível concluir agora. Tente novamente.'),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('importar arquivo inválido mostra o erro e não altera os dados', async () => {
     const user = userEvent.setup();
     const [movement] = await getHabits();

@@ -65,7 +65,14 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
 
   const chooseFile = async () => {
     setError(null);
-    const text = await pickFile('application/json,.json');
+    let text: string | null;
+    try {
+      text = await pickFile('application/json,.json');
+    } catch {
+      // No nativo o diálogo ou a leitura do arquivo podem falhar.
+      report();
+      return;
+    }
     if (text === null) return;
     let parsed: unknown;
     try {
