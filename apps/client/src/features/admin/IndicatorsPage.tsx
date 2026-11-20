@@ -105,7 +105,7 @@ export function IndicatorsPage() {
     setExporting(true);
     try {
       const { name, content } = await fetchCsv(token);
-      downloadFile(name, content, 'text/csv;charset=utf-8');
+      await downloadFile(name, content, 'text/csv;charset=utf-8');
     } catch (e) {
       if (!expireOn401(e)) toast(t('admin.indicators.exportFailed'));
     } finally {

@@ -10,6 +10,10 @@ import { routes } from './app/router';
 import { MotionProvider } from './app/motion';
 import { RootErrorBoundary } from './app/RootErrorBoundary';
 import { ThemeProvider } from './app/theme';
+import { installExternalLinkHandler, openExternal } from './platform/links';
+import { isNative } from './platform/runtime';
+
+if (isNative()) installExternalLinkHandler(document, openExternal);
 
 const router = createBrowserRouter(routes);
 

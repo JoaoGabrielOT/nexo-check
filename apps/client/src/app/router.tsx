@@ -11,21 +11,23 @@ import { TodayPage } from '../features/today';
 import { NotFoundPage, RouteErrorPage } from './ErrorPages';
 import { Layout } from './layout';
 
-const AdminRoutes = lazy(() => import('../features/admin/AdminRoutes'));
-
-// O admin só existe na web; nos apps nativos (Tauri) a rota nem é registrada.
+// O admin só existe na web; nos apps nativos (Tauri) a rota nem é registrada. O lazy()/import()
+// fica dentro do ramo web para o minificador eliminar o chunk do admin no build nativo.
 const adminRoutes: RouteObject[] = import.meta.env.TAURI_ENV_PLATFORM
   ? []
-  : [
-      {
-        path: 'admin/*',
-        element: (
-          <Suspense fallback={null}>
-            <AdminRoutes />
-          </Suspense>
-        ),
-      },
-    ];
+  : (() => {
+      const AdminRoutes = lazy(() => import('../features/admin/AdminRoutes'));
+      return [
+        {
+          path: 'admin/*',
+          element: (
+            <Suspense fallback={null}>
+              <AdminRoutes />
+            </Suspense>
+          ),
+        },
+      ];
+    })();
 
 export const routes: RouteObject[] = [
   {

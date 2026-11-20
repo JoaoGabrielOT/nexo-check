@@ -9,6 +9,9 @@ const rootPkg = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf-8'),
 ) as { version: string };
 
+// Build dos apps nativos (Tauri define TAURI_ENV_PLATFORM): sem PWA nem service worker.
+const native = Boolean(process.env.TAURI_ENV_PLATFORM);
+
 export default defineConfig(({ mode }) => ({
   envPrefix: ['VITE_', 'TAURI_ENV_'],
   define: { __APP_VERSION__: JSON.stringify(rootPkg.version) },
@@ -16,6 +19,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     tailwindcss(),
     mode !== 'test' &&
+      !native &&
       VitePWA({
         registerType: 'prompt',
         injectRegister: false,
@@ -51,7 +55,13 @@ export default defineConfig(({ mode }) => ({
               new URL('./test/pwa-register-react.ts', import.meta.url),
             ),
           }
-        : ({} as Record<string, string>),
+        : native
+          ? {
+              'virtual:pwa-register/react': fileURLToPath(
+                new URL('./src/platform/pwa-register-noop.ts', import.meta.url),
+              ),
+            }
+          : ({} as Record<string, string>),
   },
   server: { port: 5173 },
   test: {

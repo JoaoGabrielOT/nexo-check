@@ -5,7 +5,7 @@ declare const __APP_VERSION__: string;
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
-  readonly TAURI_ENV_PLATFORM?: string;
+  readonly TAURI_ENV_PLATFORM?: 'windows' | 'linux' | 'darwin' | 'android' | 'ios';
 }
 
 interface ImportMeta {

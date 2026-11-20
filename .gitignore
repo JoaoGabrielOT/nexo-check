@@ -16,3 +16,4 @@ abrir-sessao-claude.cmd
 .claude/settings.local.json
 src-tauri/target
 .superpowers/
+dist-native
