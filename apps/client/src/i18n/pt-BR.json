@@ -377,6 +377,9 @@
   "reminders": {
     "title": "Lembretes",
     "limitation": "Na web, os lembretes só aparecem com o app aberto.",
+    "limitationDesktop": "No Windows, os lembretes aparecem enquanto o app estiver aberto, mesmo minimizado.",
+    "limitationAndroid": "Os lembretes podem atrasar alguns minutos por causa da economia de bateria.",
+    "deniedNative": "As notificações do NEXO Check estão bloqueadas. Libere nas configurações do sistema.",
     "denied": "As notificações estão bloqueadas neste navegador. Libere nas configurações do site para receber lembretes.",
     "unsupported": "Este navegador não oferece notificações.",
     "movement": "Movimento do dia",

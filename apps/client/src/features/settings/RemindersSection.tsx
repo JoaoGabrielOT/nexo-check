@@ -5,30 +5,50 @@ import { Switch, Tile, toast } from '@nexo/ui';
 import { db, getSettings, updateSettings } from '../../db';
 import type { ReminderSettings } from '../../db';
 import { NumberStepper } from './NumberStepper';
-import { getNotificationAdapter, permissionState } from '../../platform/notifications';
+import { getNotificationAdapter } from '../../platform/notifications';
+import type { PermissionStatus } from '../../platform/notifications';
+import { PLATFORM } from '../../platform/runtime';
 
 type Kind = keyof ReminderSettings;
 const KINDS: Kind[] = ['movement', 'activeBreak', 'water', 'bedtime'];
 const INTERVAL = { min: 30, max: 240, step: 15 } as const; // minutos
 
+const LIMITATION = {
+  web: 'reminders.limitation',
+  desktop: 'reminders.limitationDesktop',
+  android: 'reminders.limitationAndroid',
+} as const;
+
 const field =
   'min-h-11 rounded-control border-2 border-text/40 bg-surface px-3 text-sm font-bold text-text tabular-nums focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl';
 
-/** Reagenda os lembretes (timers) sempre que as configurações mudam; cancela ao sair do app. */
+/** Reagenda os lembretes sempre que as configurações mudam; timers morrem com a tela, o agendamento nativo não. */
 export function useReminderScheduling(reminders: ReminderSettings | undefined): void {
   useEffect(() => {
     if (!reminders) return;
     const adapter = getNotificationAdapter();
-    adapter.schedule(reminders);
-    return () => adapter.cancelAll();
+    adapter.schedule(reminders).catch(() => undefined);
+    return () => {
+      if (!adapter.persistent) void adapter.cancelAll();
+    };
   }, [reminders]);
 }
 
 export function RemindersSection() {
   const { t } = useTranslation();
   const settings = useLiveQuery(getSettings, []);
-  const [permission, setPermission] = useState(permissionState);
+  const [permission, setPermission] = useState<PermissionStatus | null>(null);
   const [windowError, setWindowError] = useState<Kind | null>(null);
+  useEffect(() => {
+    let active = true;
+    getNotificationAdapter()
+      .getPermission()
+      .then((state) => active && setPermission(state))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
   if (!settings) return null;
   const { reminders } = settings;
 
@@ -47,19 +67,20 @@ export function RemindersSection() {
 
   // O pedido de permissão acontece ao ligar um lembrete (gesto da pessoa), enquanto ainda não foi decidido.
   const toggle = async (kind: Kind, enabled: boolean) => {
-    if (enabled && permissionState() === 'default') {
-      await getNotificationAdapter().requestPermission();
-      setPermission(permissionState());
+    const adapter = getNotificationAdapter();
+    if (enabled && (await adapter.getPermission()) === 'default') {
+      await adapter.requestPermission();
+      setPermission(await adapter.getPermission());
     }
     await change(kind, { enabled });
   };
 
   return (
     <Tile tone="plain" label={t('reminders.title')}>
-      <p className="max-w-prose text-sm text-muted">{t('reminders.limitation')}</p>
+      <p className="max-w-prose text-sm text-muted">{t(LIMITATION[PLATFORM])}</p>
       {permission === 'denied' && (
         <p role="status" className="max-w-prose text-sm font-bold">
-          {t('reminders.denied')}
+          {t(PLATFORM === 'web' ? 'reminders.denied' : 'reminders.deniedNative')}
         </p>
       )}
       {permission === 'unsupported' && (

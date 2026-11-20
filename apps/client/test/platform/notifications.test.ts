@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setNowForTests } from '../../src/db/clock';
 import { DEFAULT_REMINDERS } from '../../src/db';
 import {
+  getNotificationAdapter,
   nextFixedTime,
   nextIntervalTime,
   webNotifications,
@@ -32,12 +33,12 @@ describe('webNotifications.schedule', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
-  it('dispara a notificação na hora e agenda o dia seguinte; cancelAll limpa os timers', () => {
+  it('dispara a notificação na hora e agenda o dia seguinte; cancelAll limpa os timers', async () => {
     const shown = vi.fn();
     vi.stubGlobal('Notification', Object.assign(shown, { permission: 'granted' }));
     webNotifications.schedule({ ...DEFAULT_REMINDERS, movement: { enabled: true, time: '08:00' } });
     setNowForTests(() => at(8, 0));
-    vi.advanceTimersByTime(60 * 60 * 1000);
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
     expect(shown).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(1);
     webNotifications.cancelAll();
@@ -45,7 +46,7 @@ describe('webNotifications.schedule', () => {
     vi.unstubAllGlobals();
   });
 
-  it('Notification que lança não quebra a cadeia: o timer do lembrete é reagendado', () => {
+  it('Notification que lança não quebra a cadeia: o timer do lembrete é reagendado', async () => {
     vi.stubGlobal(
       'Notification',
       Object.assign(
@@ -57,10 +58,10 @@ describe('webNotifications.schedule', () => {
     );
     webNotifications.schedule({ ...DEFAULT_REMINDERS, movement: { enabled: true, time: '08:00' } });
     setNowForTests(() => at(8, 0));
-    expect(() => vi.advanceTimersByTime(60 * 60 * 1000)).not.toThrow();
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
     expect(vi.getTimerCount()).toBe(1);
     setNowForTests(() => new Date(2026, 10, 19, 8, 0));
-    vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
     expect(vi.getTimerCount()).toBe(1);
     vi.unstubAllGlobals();
   });
@@ -116,6 +117,25 @@ describe('próximo horário', () => {
     expect(nextIntervalTime(rule, at(7))).toEqual(at(8));
     expect(nextIntervalTime(rule, at(8, 30))).toEqual(at(9));
     expect(nextIntervalTime(rule, at(10, 0))).toEqual(new Date(2026, 10, 19, 8, 0));
+  });
+});
+
+describe('getNotificationAdapter', () => {
+  it('web usa timers; desktop não é persistente; android é persistente', () => {
+    expect(getNotificationAdapter('web')).toBe(webNotifications);
+    expect(webNotifications.persistent).toBe(false);
+    expect(getNotificationAdapter('desktop').persistent).toBe(false);
+    expect(getNotificationAdapter('android').persistent).toBe(true);
+  });
+});
+
+describe('getPermission', () => {
+  it('sem suporte a Notification devolve unsupported; com suporte, o estado do navegador', async () => {
+    vi.stubGlobal('Notification', undefined);
+    expect(await webNotifications.getPermission()).toBe('unsupported');
+    vi.stubGlobal('Notification', { permission: 'denied' });
+    expect(await webNotifications.getPermission()).toBe('denied');
+    vi.unstubAllGlobals();
   });
 });
 
