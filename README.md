@@ -101,7 +101,7 @@ Ordem sugerida: Neon, Render, Vercel e, por fim, ajustar o CORS no Render.
 ### 2. API (Render)
 
 1. Em **New > Blueprint**, aponte para este repositório. O `render.yaml` cria o serviço `nexo-check-api` (plano gratuito, região virginia).
-2. Preencha no painel as variáveis com `sync: false`: `DATABASE_URL`, `DIRECT_URL`, `ADMIN_PASSWORD`, `CORS_ORIGINS`, `PUBLIC_WEB_URL`. O `ADMIN_JWT_SECRET` é gerado pelo Render.
+2. Preencha no painel as variáveis com `sync: false`: `DATABASE_URL`, `DIRECT_URL`, `ADMIN_PASSWORD`, `CORS_ORIGINS`, `PUBLIC_WEB_URL`. Opcional: `CLIENT_IP_HEADER` (veja a nota depois da tabela de variáveis). O `ADMIN_JWT_SECRET` é gerado pelo Render.
 3. As migrações rodam no `startCommand` (`prisma migrate deploy`), porque o plano gratuito não tem pre-deploy.
 4. O health check é `/health`.
 
@@ -128,17 +128,20 @@ Com o domínio da Vercel definido, volte ao Render e ajuste `CORS_ORIGINS` e `PU
 
 API (`apps/api/.env`, modelo em `apps/api/.env.example`):
 
-| Variável           | Obrigatória | Descrição                                                    |
-| ------------------ | ----------- | ------------------------------------------------------------ |
-| `DATABASE_URL`     | sim         | Conexão com o Postgres (use a URL com pooler em produção)    |
-| `DIRECT_URL`       | não         | Conexão direta, usada só pelas migrações (se usar pooler)    |
-| `ADMIN_PASSWORD`   | sim         | Senha do painel admin (mínimo 12 caracteres)                 |
-| `ADMIN_JWT_SECRET` | sim         | Segredo do JWT do admin (mínimo 32 caracteres)               |
-| `CORS_ORIGINS`     | não         | Origens permitidas no CORS, separadas por vírgula            |
-| `PUBLIC_WEB_URL`   | sim         | URL pública do client (usada nos links e QR das sessões)     |
-| `PORT`             | não         | Porta da API (padrão 3333)                                   |
-| `TRUST_PROXY_HOPS` | não         | Saltos de proxy confiáveis (padrão 1; Render = 1)            |
-| `NODE_ENV`         | não         | `development`, `test` ou `production` (padrão `development`) |
+| Variável           | Obrigatória | Descrição                                                                                                  |
+| ------------------ | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`     | sim         | Conexão com o Postgres (use a URL com pooler em produção)                                                  |
+| `DIRECT_URL`       | não         | Conexão direta, usada só pelas migrações (se usar pooler)                                                  |
+| `ADMIN_PASSWORD`   | sim         | Senha do painel admin (mínimo 12 caracteres)                                                               |
+| `ADMIN_JWT_SECRET` | sim         | Segredo do JWT do admin (mínimo 32 caracteres)                                                             |
+| `CORS_ORIGINS`     | não         | Origens permitidas no CORS, separadas por vírgula                                                          |
+| `PUBLIC_WEB_URL`   | sim         | URL pública do client (usada nos links e QR das sessões)                                                   |
+| `PORT`             | não         | Porta da API (padrão 3333)                                                                                 |
+| `TRUST_PROXY_HOPS` | não         | Saltos de proxy confiáveis (padrão 1; Render = 1)                                                          |
+| `CLIENT_IP_HEADER` | não         | Cabeçalho com o IP real do cliente para o rate limit (ex.: `cf-connecting-ip`); sem ele, usa o IP do proxy |
+| `NODE_ENV`         | não         | `development`, `test` ou `production` (padrão `development`)                                               |
+
+> `CLIENT_IP_HEADER`: atrás de proxies (Cloudflare e Render), o IP visto pela API é o do proxy, e vários clientes dividiriam a mesma cota do rate limit. Depois do primeiro deploy, veja no log da API a linha `ip_headers` (só presença dos cabeçalhos e contagem do `x-forwarded-for`, nunca IPs) e defina a variável com o cabeçalho que chegar, por exemplo `cf-connecting-ip`. Limites atuais: 100 requisições/min por cliente, 60 cadastros/h e 5 logins admin/15 min.
 
 Client:
 

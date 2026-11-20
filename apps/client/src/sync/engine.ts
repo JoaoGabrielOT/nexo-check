@@ -131,6 +131,7 @@ async function register(): Promise<void> {
           consentVersion: consent.version,
         }),
         schema: anyAck,
+        retryOn429: false,
       });
       await updateSettings({
         participant: { ...participant, registered: true },

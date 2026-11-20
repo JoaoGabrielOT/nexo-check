@@ -22,6 +22,9 @@ services:
         value: 22.12.0
       - key: TRUST_PROXY_HOPS
         value: '1'
+      # Cabeçalho com o IP real do cliente (ex.: cf-connecting-ip), para o rate limit.
+      - key: CLIENT_IP_HEADER
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL

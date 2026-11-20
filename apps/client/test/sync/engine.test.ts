@@ -197,6 +197,22 @@ describe('syncNow', () => {
     });
   });
 
+  it('registro com 429 não repete a tentativa e termina em error', async () => {
+    await consent(false);
+    let posts = 0;
+    handler = (url) => {
+      if (url.endsWith('/v1/participants')) {
+        posts++;
+        return err(429, 'rate_limited');
+      }
+      return emptyPull();
+    };
+    expect(await syncNow()).toBe('error');
+    expect(posts).toBe(1);
+    expect(getSyncSnapshot().error).toBe('server');
+    expect((await getSettings()).participant?.registered).toBe(false);
+  });
+
   it('PATCH do consentimento quando a versão conhecida pelo servidor é mais antiga', async () => {
     await consent();
     await updateSettings({ consentSyncedVersion: 0 });

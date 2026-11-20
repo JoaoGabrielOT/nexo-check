@@ -36,10 +36,12 @@ export type ApiInit<T> = RequestInit & {
   guard?: () => Promise<boolean>;
   /** `false` desliga as novas tentativas (ex.: POST não idempotente, login). Padrão: `true`. */
   retry?: boolean;
+  /** `false` não repete em 429 (ex.: cadastro, para não insistir num limite de taxa). */
+  retryOn429?: boolean;
 };
 
-const retryable = (e: ApiError) =>
-  (e.status === 0 && e.code !== 'aborted') || e.status === 429 || e.status >= 500;
+const retryable = (e: ApiError, retryOn429 = true) =>
+  (e.status === 0 && e.code !== 'aborted') || (e.status === 429 && retryOn429) || e.status >= 500;
 
 /** Espera `ms`; se `signal` abortar antes, rejeita na hora e cancela o timer. */
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -72,6 +74,7 @@ async function attempt<T>(url: string, init: ApiInit<T>, headers: Headers): Prom
   delete (rest as { auth?: unknown }).auth;
   delete (rest as { guard?: unknown }).guard;
   delete (rest as { retry?: unknown }).retry;
+  delete (rest as { retryOn429?: unknown }).retryOn429;
   if (outer?.aborted) throw new ApiError(0, 'aborted');
   const controller = new AbortController();
   const onOuterAbort = () => controller.abort();
@@ -126,7 +129,12 @@ export async function apiFetch<T>(path: string, init: ApiInit<T>): Promise<T> {
       return await attempt(url, init, headers);
     } catch (e) {
       const delay = delays[i];
-      if (!(e instanceof ApiError) || init.retry === false || !retryable(e) || delay === undefined)
+      if (
+        !(e instanceof ApiError) ||
+        init.retry === false ||
+        !retryable(e, init.retryOn429) ||
+        delay === undefined
+      )
         throw e;
       await sleep(delay, init.signal);
       if (init.signal?.aborted || (init.guard && !(await init.guard()))) {

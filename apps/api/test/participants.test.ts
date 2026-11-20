@@ -9,7 +9,7 @@ import { makeTestApp, testEnv } from './helpers';
 const CODE = 'NEXO-AB23';
 const KEY = generateRecoveryKey();
 
-// IP novo por chamada: o limite de 10/h por IP é compartilhado entre os testes do arquivo.
+// IP novo por chamada: o limite de 60/h por IP é compartilhado entre os testes do arquivo.
 let nextIp = 0;
 const register = (app: FastifyInstance, payload: object, ip = `203.0.113.${++nextIp}`) =>
   app.inject({
@@ -242,9 +242,10 @@ describe('participantes', () => {
     expect(bad.statusCode).toBe(400);
   });
 
-  it('o 11º registro na mesma hora, do mesmo IP, dá 429', async () => {
-    for (let i = 0; i < 10; i++) {
-      const code = `NEXO-AB${i}${i}`;
+  it('o 61º registro na mesma hora, do mesmo IP, dá 429', async () => {
+    const digits = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    for (let i = 0; i < 60; i++) {
+      const code = `NEXO-AB${digits[Math.floor(i / 10)]}${digits[i % 10]}`;
       const res = await register(app, { code, key: KEY, consentVersion: 1 }, '198.51.100.7');
       expect(res.statusCode).toBe(201);
     }

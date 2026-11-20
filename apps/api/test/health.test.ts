@@ -105,6 +105,60 @@ describe('rate limit e CORS normalizado', () => {
     await app.close();
   });
 
+  it('com CLIENT_IP_HEADER, limita pelo cabeçalho e não pelo IP do proxy', async () => {
+    const { app } = await makeTestApp({ CLIENT_IP_HEADER: 'cf-connecting-ip' }, 2);
+    const get = (client: string, proxy: string) =>
+      app.inject({
+        method: 'GET',
+        url: '/health',
+        headers: { 'cf-connecting-ip': client, 'x-forwarded-for': proxy },
+      });
+    // Mesmo cliente passando por IPs de proxy diferentes: uma única chave.
+    expect((await get('203.0.113.1', '10.0.0.1')).statusCode).toBe(200);
+    expect((await get('203.0.113.1', '10.0.0.2')).statusCode).toBe(200);
+    expect((await get('203.0.113.1', '10.0.0.3')).statusCode).toBe(429);
+    // Outro cliente atrás do mesmo proxy tem a própria cota.
+    expect((await get('203.0.113.2', '10.0.0.3')).statusCode).toBe(200);
+    await app.close();
+  });
+
+  it('com CLIENT_IP_HEADER definido mas ausente na requisição, cai para req.ip', async () => {
+    const { app } = await makeTestApp({ CLIENT_IP_HEADER: 'cf-connecting-ip' }, 2);
+    const get = () =>
+      app.inject({ method: 'GET', url: '/health', headers: { 'x-forwarded-for': '203.0.113.9' } });
+    expect((await get()).statusCode).toBe(200);
+    expect((await get()).statusCode).toBe(200);
+    expect((await get()).statusCode).toBe(429);
+    await app.close();
+  });
+
+  it('registra uma vez só a presença dos cabeçalhos de IP, sem os valores', async () => {
+    const lines: string[] = [];
+    const app = await buildApp({
+      prisma: { $disconnect: () => Promise.resolve() } as unknown as PrismaClient,
+      env: { ...testEnv, NODE_ENV: 'development' },
+      logStream: { write: (s: string) => void lines.push(s) },
+    });
+    const headers = {
+      'cf-connecting-ip': '198.51.100.77',
+      'x-forwarded-for': '203.0.113.5, 10.1.1.1',
+    };
+    await app.inject({ method: 'GET', url: '/nada', headers });
+    await app.inject({ method: 'GET', url: '/nada', headers });
+    await app.close();
+    const diag = lines.filter((l) => l.includes('ip_headers'));
+    expect(diag).toHaveLength(1);
+    const entry = JSON.parse(diag[0] as string) as Record<string, unknown>;
+    expect(entry).toMatchObject({
+      cfConnectingIp: true,
+      trueClientIp: false,
+      xRealIp: false,
+      xForwardedForCount: 2,
+    });
+    expect(lines.join('')).not.toContain('198.51.100.77');
+    expect(lines.join('')).not.toContain('203.0.113.5');
+  });
+
   it('ignora barra final e espaços nas origens configuradas', async () => {
     const { parseEnv } = await import('../src/env');
     const env = parseEnv({

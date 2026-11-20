@@ -22,7 +22,7 @@ export interface BuildAppOptions {
   env: Env;
   /** Limite global por IP por minuto (padrão 100); testes podem reduzir. */
   rateLimitMax?: number;
-  /** Limite de registros por IP por hora em POST /v1/participants (padrão 10). */
+  /** Limite de registros por IP por hora em POST /v1/participants (padrão 60). */
   registerLimitMax?: number;
   /** Limite de tentativas de login admin por IP a cada 15 minutos (padrão 5). */
   loginLimitMax?: number;
@@ -52,6 +52,26 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
           },
   });
 
+  const clientIpHeader = env.CLIENT_IP_HEADER;
+
+  // Diagnóstico para escolher CLIENT_IP_HEADER em produção: só presença e contagem, nunca valores.
+  let ipHeadersLogged = false;
+  app.addHook('onRequest', async (req) => {
+    if (ipHeadersLogged) return;
+    ipHeadersLogged = true;
+    const xff = req.headers['x-forwarded-for'];
+    const xffValue = Array.isArray(xff) ? xff.join(',') : xff;
+    req.log.info(
+      {
+        cfConnectingIp: 'cf-connecting-ip' in req.headers,
+        trueClientIp: 'true-client-ip' in req.headers,
+        xRealIp: 'x-real-ip' in req.headers,
+        xForwardedForCount: xffValue ? xffValue.split(',').length : 0,
+      },
+      'ip_headers',
+    );
+  });
+
   const origins = new Set([
     ...env.CORS_ORIGINS,
     ...TAURI_ORIGINS,
@@ -75,6 +95,16 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     global: true,
     max: opts.rateLimitMax ?? 100,
     timeWindow: '1 minute',
+    // Atrás de Cloudflare + Render, req.ip é o IP de saída do proxy (vários clientes na mesma
+    // chave). O cabeçalho configurado traz o IP real; vale também para os limites por rota.
+    keyGenerator: (req) => {
+      if (clientIpHeader) {
+        const raw = req.headers[clientIpHeader];
+        const first = (Array.isArray(raw) ? raw[0] : raw)?.split(',')[0]?.trim();
+        if (first) return first;
+      }
+      return req.ip;
+    },
   });
 
   app.setErrorHandler((err: unknown, _req, reply) => {
@@ -104,7 +134,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(participantRoutes, {
     prefix: '/v1',
     prisma,
-    registerLimitMax: opts.registerLimitMax ?? 10,
+    registerLimitMax: opts.registerLimitMax ?? 60,
   });
   await app.register(syncRoutes, { prefix: '/v1', prisma });
   await app.register(questionnaireRoutes, { prefix: '/v1', prisma });

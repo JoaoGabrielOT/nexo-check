@@ -24,6 +24,17 @@ const envSchema = z.object({
     emptyToUndefined,
     z.coerce.number().int().min(0).max(10).default(1),
   ),
+  // Cabeçalho com o IP real do cliente (ex.: cf-connecting-ip), usado como chave do rate limit.
+  // Vazio = usa o IP resolvido pelo trustProxy.
+  CLIENT_IP_HEADER: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .trim()
+      .min(1)
+      .transform((v) => v.toLowerCase())
+      .optional(),
+  ),
   NODE_ENV: z.preprocess(
     emptyToUndefined,
     z.enum(['development', 'test', 'production']).default('development'),
