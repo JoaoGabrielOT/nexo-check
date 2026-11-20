@@ -2,7 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CONSENT_VERSION, isParticipantCode } from '@nexo/shared';
 import { ThemeProvider } from '../../src/app/theme';
 import { routes } from '../../src/app/router';
@@ -29,6 +29,17 @@ describe('onboarding', () => {
     expect(await screen.findByRole('heading', { name: 'Boas-vindas' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/onboarding');
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
+  });
+
+  it('recusar o envio pede armazenamento persistente ao navegador', async () => {
+    const persist = vi.fn().mockResolvedValue(true);
+    Object.defineProperty(navigator, 'storage', { value: { persist }, configurable: true });
+    const user = userEvent.setup();
+    renderAt('/onboarding');
+    await user.click(await screen.findByRole('button', { name: 'Continuar' }));
+    await user.click(await screen.findByRole('button', { name: 'Usar sem enviar dados' }));
+    await waitFor(() => expect(persist).toHaveBeenCalled());
+    Object.defineProperty(navigator, 'storage', { value: undefined, configurable: true });
   });
 
   it('mantém /checkin acessível sem onboarding', async () => {

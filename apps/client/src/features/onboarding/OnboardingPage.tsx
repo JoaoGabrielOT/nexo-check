@@ -13,6 +13,7 @@ import { MarkdownView } from '../../components/MarkdownView';
 import { now } from '../../db/clock';
 import { safeNext } from '../../lib/nextPath';
 import { ensureDefaultHabits, getSettings, updateSettings } from '../../db';
+import { requestPersistentStorage } from '../../platform/storage';
 import { RestoreDialog } from '../settings/RestoreDialog';
 import { ConsentStep } from './ConsentStep';
 
@@ -52,6 +53,7 @@ export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
       onboardingDone: true,
     });
     await ensureDefaultHabits(now());
+    void requestPersistentStorage();
     if (reconsent && current.participant) {
       finish();
       return;
@@ -63,6 +65,7 @@ export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
   const decline = async () => {
     await updateSettings({ consent: null, onboardingDone: true });
     await ensureDefaultHabits(now());
+    void requestPersistentStorage();
     finish();
   };
 
@@ -74,6 +77,7 @@ export function OnboardingPage({ reconsent = false }: { reconsent?: boolean }) {
       onboardingDone: true,
     });
     await ensureDefaultHabits(now());
+    void requestPersistentStorage();
     finish();
   };
 
