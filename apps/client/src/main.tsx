@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { routes } from './app/router';
 import { MotionProvider } from './app/motion';
+import { RootErrorBoundary } from './app/RootErrorBoundary';
 import { ThemeProvider } from './app/theme';
 
 const router = createBrowserRouter(routes);
@@ -17,10 +18,12 @@ if (!container) throw new Error('Elemento #root não encontrado');
 
 createRoot(container).render(
   <StrictMode>
-    <ThemeProvider>
-      <MotionProvider>
-        <RouterProvider router={router} />
-      </MotionProvider>
-    </ThemeProvider>
+    <RootErrorBoundary>
+      <ThemeProvider>
+        <MotionProvider>
+          <RouterProvider router={router} />
+        </MotionProvider>
+      </ThemeProvider>
+    </RootErrorBoundary>
   </StrictMode>,
 );

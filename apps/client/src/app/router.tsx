@@ -8,6 +8,7 @@ import { ProgressPage } from '../features/progress';
 import { ProjectPage, QuestionnairePage } from '../features/project';
 import { SettingsPage } from '../features/settings';
 import { TodayPage } from '../features/today';
+import { NotFoundPage, RouteErrorPage } from './ErrorPages';
 import { Layout } from './layout';
 
 const AdminRoutes = lazy(() => import('../features/admin/AdminRoutes'));
@@ -29,19 +30,28 @@ const adminRoutes: RouteObject[] = import.meta.env.TAURI_ENV_PLATFORM
 export const routes: RouteObject[] = [
   {
     element: <Layout />,
+    errorElement: <RouteErrorPage />,
+    // Pathless: um erro numa tela mantém o cabeçalho e a navegação (o erro do próprio Layout
+    // cai no errorElement acima).
     children: [
-      { index: true, element: <TodayPage /> },
-      { path: 'registro', element: <LogPage /> },
-      { path: 'progresso', element: <ProgressPage /> },
-      { path: 'aprender', element: <LearnPage /> },
-      { path: 'aprender/:section/:slug', element: <ArticlePage /> },
-      { path: 'projeto', element: <ProjectPage /> },
-      { path: 'projeto/questionario/:kind', element: <QuestionnairePage /> },
-      { path: 'checkin', element: <CheckinPage /> },
-      { path: 'config', element: <SettingsPage /> },
-      { path: 'onboarding', element: <OnboardingPage /> },
-      { path: 'onboarding/consentimento', element: <ReconsentPage /> },
-      ...adminRoutes,
+      {
+        errorElement: <RouteErrorPage />,
+        children: [
+          { index: true, element: <TodayPage /> },
+          { path: 'registro', element: <LogPage /> },
+          { path: 'progresso', element: <ProgressPage /> },
+          { path: 'aprender', element: <LearnPage /> },
+          { path: 'aprender/:section/:slug', element: <ArticlePage /> },
+          { path: 'projeto', element: <ProjectPage /> },
+          { path: 'projeto/questionario/:kind', element: <QuestionnairePage /> },
+          { path: 'checkin', element: <CheckinPage /> },
+          { path: 'config', element: <SettingsPage /> },
+          { path: 'onboarding', element: <OnboardingPage /> },
+          { path: 'onboarding/consentimento', element: <ReconsentPage /> },
+          ...adminRoutes,
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ];

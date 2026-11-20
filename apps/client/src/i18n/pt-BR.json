@@ -29,7 +29,16 @@
     "backup": {
       "invalid": "Arquivo de backup inválido. Nenhum dado foi alterado."
     },
-    "generic": "Não foi possível concluir agora. Tente novamente."
+    "generic": "Não foi possível concluir agora. Tente novamente.",
+    "error": {
+      "title": "Algo deu errado",
+      "body": "Não foi possível mostrar esta tela. Seus registros continuam salvos neste aparelho."
+    },
+    "notFound": {
+      "title": "Página não encontrada",
+      "body": "O endereço que você abriu não existe neste app."
+    },
+    "backHome": "Voltar para o início"
   },
   "pwa": {
     "updateAvailable": "Nova versão disponível — recarregar",
