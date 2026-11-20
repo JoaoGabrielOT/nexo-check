@@ -336,18 +336,27 @@ async function reregister(): Promise<boolean> {
     const { consent, participant } = await requireConsent();
     const { restoredFromBackup } = await getSettings();
     if (!consent || !participant.registered || !restoredFromBackup) return false;
-    await updateSettings({ restoredFromBackup: false });
-    await call('/v1/participants', {
-      method: 'POST',
-      body: JSON.stringify({
-        code: participant.code,
-        key: participant.key,
-        consentVersion: consent.version,
-      }),
-      schema: anyAck,
-      retryOn429: false,
-    });
+    try {
+      await call('/v1/participants', {
+        method: 'POST',
+        body: JSON.stringify({
+          code: participant.code,
+          key: participant.key,
+          consentVersion: consent.version,
+        }),
+        schema: anyAck,
+        retryOn429: false,
+      });
+    } catch (e) {
+      // Resposta definitiva (409, 400): não adianta tentar de novo. Rede, 5xx e 429 mantêm o flag
+      // para a próxima rodada.
+      if (e instanceof ApiError && (e.status === 409 || e.status === 400)) {
+        await updateSettings({ restoredFromBackup: false });
+      }
+      return false;
+    }
     await updateSettings({
+      restoredFromBackup: false,
       syncCursor: null,
       consentSyncedVersion: undefined,
       backfillPending: true,
@@ -533,7 +542,7 @@ async function wipeLocalData(): Promise<void> {
 
 async function restoreLocked(code: string, key: string, opts: RestoreOptions): Promise<void> {
   const creds: Credentials = { code: normalizeCode(code), key: normalizeRecoveryKey(key) };
-  const { participant: local, consent: priorConsent } = await getSettings();
+  const { participant: local } = await getSettings();
   const otherAccount = local === null || local.code !== creds.code;
   // Trocar de participante com pendências enviaria os dados de um para a conta do outro.
   if (otherAccount && local && (await hasPendingData())) throw new RestoreBlockedError();
@@ -579,9 +588,10 @@ async function restoreLocked(code: string, key: string, opts: RestoreOptions): P
           participant: { ...creds, registered: true },
           syncCursor: null,
           consentSyncedVersion: undefined,
-          // O histórico recém-baixado já está no servidor: não reenviar.
-          backfillPending: false,
-          ...(replace && { consent: priorConsent }),
+          // Outra conta: o histórico recém-baixado já está no servidor, não reenviar. O aceite da
+          // conta anterior não vale aqui (consent segue nulo até a pessoa aceitar de novo).
+          // Mesma conta: o flag continua como estava.
+          ...(otherAccount && { backfillPending: false }),
         });
       },
     },

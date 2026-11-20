@@ -326,6 +326,30 @@ describe('syncNow', () => {
     expect(s.restoredFromBackup).toBeFalsy();
   });
 
+  it('recadastro com falha de rede mantém o flag; a rodada seguinte com 201 recadastra', async () => {
+    await consent();
+    await updateSettings({ restoredFromBackup: true });
+    httpConfig.retryDelaysMs = [];
+    let accountExists = false;
+    let postFails = true;
+    handler = (url, init) => {
+      if (url.endsWith('/v1/participants')) {
+        if (postFails) throw new TypeError('network');
+        accountExists = true;
+        return json(201, { code: 'NEXO-ABCD' });
+      }
+      if (!accountExists) return err(401, 'unauthorized');
+      if (isPush(url, init)) return json(200, { applied: 0, cursor: '9' });
+      return emptyPull();
+    };
+    expect(await syncNow()).toBe('error');
+    expect((await getSettings()).restoredFromBackup).toBe(true);
+    postFails = false;
+    expect(await syncNow()).toBe('synced');
+    expect(accountExists).toBe(true);
+    expect((await getSettings()).restoredFromBackup).toBeFalsy();
+  });
+
   it('401 e o recadastro dá code_taken: mantém o erro, limpa o flag e não tenta de novo', async () => {
     await consent();
     await updateSettings({ restoredFromBackup: true });
@@ -649,7 +673,7 @@ describe('restoreFromServer', () => {
     expect(await db.habits.count()).toBe(1);
   });
 
-  it('replaceLocal: restaurou, o backfill pendente é limpo e o consentimento volta', async () => {
+  it('replaceLocal: restaurou, o backfill é limpo e o consentimento fica nulo, sem PATCH', async () => {
     await consent();
     await updateSettings({ backfillPending: true });
     await db.habitEntries.add({ id: 'e1' } as never);
@@ -660,8 +684,45 @@ describe('restoreFromServer', () => {
     await restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true });
     const s = await getSettings();
     expect(s.backfillPending).toBeFalsy();
-    expect(s.consent?.granted).toBe(true);
+    expect(s.consent).toBeNull();
+    expect(s.participant).toEqual({ code: 'NEXO-WXYZ', key: KEY, registered: true });
     expect(await outboxCount()).toBe(0);
+    // Sem aceite novo da conta B, nada sai: o sync seguinte é pulado e não há PATCH.
+    fetchMock.mockClear();
+    expect(await syncNow()).toBe('skipped');
+    expect(fetchMock.mock.calls.some(([, i]) => i.method === 'PATCH')).toBe(false);
+  });
+
+  it('restaurar a mesma conta mantém o backfillPending', async () => {
+    await consent();
+    await updateSettings({ backfillPending: true });
+    handler = () => json(200, { changes: [], cursor: '4', hasMore: false });
+    await restoreFromServer('NEXO-ABCD', KEY);
+    expect((await getSettings()).backfillPending).toBe(true);
+  });
+
+  it('replaceLocal: se o wipe falhar, participante e consentimento já estão nulos e o sync não recadastra', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    handler = (url, init) =>
+      init.method === 'DELETE'
+        ? json(204)
+        : json(200, { changes: [], cursor: '2', hasMore: false });
+    const original = db.transaction.bind(db) as (...a: unknown[]) => Promise<unknown>;
+    vi.spyOn(db, 'transaction').mockImplementation(((...args: unknown[]) =>
+      Array.isArray(args[1])
+        ? Promise.reject(new Error('wipe falhou'))
+        : original(...args)) as never);
+    await expect(restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true })).rejects.toThrow(
+      'wipe falhou',
+    );
+    vi.restoreAllMocks();
+    const s = await getSettings();
+    expect(s.participant).toBeNull();
+    expect(s.consent).toBeNull();
+    fetchMock.mockClear();
+    expect(await syncNow()).toBe('skipped');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('replaceLocal: depois do DELETE, uma falha no pull deixa participante e consentimento nulos', async () => {

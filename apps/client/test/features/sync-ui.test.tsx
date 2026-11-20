@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SyncStatusPill } from '../../src/app/SyncStatusPill';
 import { db, getSettings, outboxCount, updateSettings } from '../../src/db';
@@ -74,7 +74,14 @@ describe('SyncSection', () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
     await consent();
     await db.habitEntries.add({ id: 'e1' } as never);
-    renderSection();
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<SyncSection />} />
+          <Route path="/onboarding/consentimento" element={<p>tela de consentimento</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await user.click(await screen.findByRole('button', { name: 'Restaurar em outro aparelho' }));
     await user.type(await screen.findByLabelText('Código de participante'), 'nexo-wxyz');
     await user.type(screen.getByLabelText('Chave de recuperação'), KEY);
@@ -95,6 +102,9 @@ describe('SyncSection', () => {
     await waitFor(async () => expect((await getSettings()).participant?.code).toBe('NEXO-WXYZ'));
     expect(await db.habitEntries.count()).toBe(0);
     expect(confirmSpy).not.toHaveBeenCalled();
+    // A conta restaurada não herda o aceite da anterior: vai para a tela de consentimento.
+    expect((await getSettings()).consent).toBeNull();
+    expect(await screen.findByText('tela de consentimento')).toBeInTheDocument();
   });
 
   it('restaurar com dados locais e Cancelar não muda nada', async () => {

@@ -1,6 +1,7 @@
 import { Copy, Eye, EyeOff } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { CONSENT_VERSION } from '@nexo/shared';
 import {
@@ -26,6 +27,7 @@ type Dialogs = null | 'restore' | 'revoke';
 
 export function SyncSection() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const settings = useLiveQuery(getSettings, []);
   const status = useSyncStatus();
   const [showKey, setShowKey] = useState(false);
@@ -167,7 +169,11 @@ export function SyncSection() {
       <RestoreDialog
         open={dialog === 'restore'}
         onOpenChange={(open) => !open && setDialog(null)}
-        onRestored={() => void toast(t('settings.sync.restored'))}
+        onRestored={async () => {
+          toast(t('settings.sync.restored'));
+          // Sem aceite (a conta restaurada não herda o da anterior): pede o consentimento agora.
+          if ((await getSettings()).consent === null) navigate('/onboarding/consentimento');
+        }}
       />
 
       <Dialog open={dialog === 'revoke'} onOpenChange={(open) => !open && setDialog(null)}>
