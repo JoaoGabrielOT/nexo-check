@@ -11,8 +11,8 @@ Checklist diário de hábitos do projeto **NEXO em Movimento** (neurociência do
 
 ## Links
 
-<!-- URL_WEB -->
-<!-- URL_API -->
+- App web: <https://nexo-check.vercel.app>
+- API (status): <https://nexo-check-api.onrender.com/health>. No plano gratuito do Render, a primeira requisição depois de um tempo parado pode levar cerca de 50 s.
 
 ## Telas
 
