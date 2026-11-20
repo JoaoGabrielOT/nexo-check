@@ -184,6 +184,8 @@ describe('syncNow', () => {
         codes.push((JSON.parse(String(init.body)) as { code: string }).code);
         return codes.length === 1 ? err(409, 'code_taken') : json(201, { code: codes[1] });
       }
+      // A sondagem com as credenciais atuais falha: o código pertence a outra pessoa.
+      if (url.includes('since=999999999999999999')) return err(401, 'unauthorized');
       if (init.method === 'POST') return json(200, { applied: 0, cursor: '0' });
       return emptyPull();
     };
@@ -192,6 +194,26 @@ describe('syncNow', () => {
     expect(codes[1]).not.toBe(codes[0]);
     expect((await getSettings()).participant).toEqual({
       code: codes[1],
+      key: KEY,
+      registered: true,
+    });
+  });
+
+  it('409 code_taken com credenciais que autenticam: marca registrado e mantém o código', async () => {
+    await consent(false);
+    let posts = 0;
+    handler = (url, init) => {
+      if (url.endsWith('/v1/participants')) {
+        posts++;
+        return err(409, 'code_taken');
+      }
+      if (init.method === 'POST') return json(200, { applied: 0, cursor: '0' });
+      return emptyPull();
+    };
+    expect(await syncNow()).toBe('synced');
+    expect(posts).toBe(1);
+    expect((await getSettings()).participant).toEqual({
+      code: 'NEXO-ABCD',
       key: KEY,
       registered: true,
     });

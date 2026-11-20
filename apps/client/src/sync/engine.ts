@@ -40,6 +40,8 @@ export interface SyncSnapshot {
 
 const BATCH = 500;
 const REGISTER_TRIES = 3;
+/** Cursor alto: a sondagem de credenciais não traz nenhuma mudança. */
+const PROBE_CURSOR = '999999999999999999';
 const LOCAL_WRITE_DEBOUNCE_MS = 5000;
 
 // --- estado observável (useSyncStatus) ---------------------------------------------------------
@@ -117,6 +119,21 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
 
 // --- etapas ------------------------------------------------------------------------------------
 
+/** O servidor aceita estas credenciais? (um GET barato; 401 = não, outro erro propaga.) */
+async function credentialsWork(creds: Credentials): Promise<boolean> {
+  try {
+    await call(`/v1/sync?since=${PROBE_CURSOR}`, {
+      method: 'GET',
+      auth: creds,
+      schema: syncPullResponse,
+    });
+    return true;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return false;
+    throw e;
+  }
+}
+
 async function register(): Promise<void> {
   const { consent, participant: current } = await requireConsent();
   let participant = current;
@@ -140,7 +157,13 @@ async function register(): Promise<void> {
       return;
     } catch (e) {
       if (!(e instanceof ApiError) || e.code !== 'code_taken' || i === REGISTER_TRIES - 1) throw e;
-      // Colisão: só o código muda; a chave gerada no aparelho continua a mesma.
+      // O POST anterior pode ter gravado e a resposta se perdido: se as credenciais deste
+      // aparelho autenticam, o cadastro já existe (a versão do consentimento é reenviada depois).
+      if (await credentialsWork(participant)) {
+        await updateSettings({ participant: { ...participant, registered: true } });
+        return;
+      }
+      // Colisão de verdade: só o código muda; a chave gerada no aparelho continua a mesma.
       participant = { ...participant, code: generateParticipantCode() };
       await updateSettings({ participant });
     }
