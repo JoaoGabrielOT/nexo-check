@@ -415,6 +415,30 @@ describe('syncNow', () => {
   });
 });
 
+describe('pull tolerante a mudanças desconhecidas', () => {
+  it('ignora e registra a mudança de versão nova ou inválida, aplica as válidas e avança o cursor', async () => {
+    await consent();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    handler = (url, init) => {
+      if (isPush(url, init)) return json(200, { applied: 0, cursor: '9' });
+      return json(200, {
+        changes: [
+          habitChange('ok1'),
+          { entity: 'futureThing', entityId: 'f1', payload: { x: 1 } },
+          { ...habitChange('bad'), payload: { id: 'bad' } },
+          habitChange('ok2'),
+        ],
+        cursor: '12',
+        hasMore: false,
+      });
+    };
+    expect(await syncNow()).toBe('synced');
+    expect((await db.habits.toArray()).map((h) => h.id).sort()).toEqual(['ok1', 'ok2']);
+    expect((await getSettings()).syncCursor).toBe('12');
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('revogar e apagar', () => {
   it('revokeConsent esvazia o outbox e o próximo syncNow é skipped', async () => {
     await consent();

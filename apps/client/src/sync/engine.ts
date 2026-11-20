@@ -8,7 +8,8 @@ import {
   normalizeRecoveryKey,
   questionnaireSubmitResponse,
   stripTextAnswers,
-  syncPullResponse,
+  type SyncChange,
+  syncChangeSchema,
   syncPushResponse,
 } from '@nexo/shared';
 import { z } from 'zod';
@@ -96,6 +97,13 @@ function errorCodeOf(e: unknown): SyncErrorCode {
 
 const anyAck = z.unknown();
 
+/** Pull tolerante: cada mudança é validada à parte, para uma versão futura não travar o cursor. */
+const pullPage = z.object({
+  changes: z.array(z.unknown()),
+  cursor: z.string(),
+  hasMore: z.boolean(),
+});
+
 /** Execução em andamento: `revokeConsent` a aborta na hora (requisições e esperas de retry). */
 let current: AbortController | null = null;
 
@@ -125,7 +133,7 @@ async function credentialsWork(creds: Credentials): Promise<boolean> {
     await call(`/v1/sync?since=${PROBE_CURSOR}`, {
       method: 'GET',
       auth: creds,
-      schema: syncPullResponse,
+      schema: pullPage,
     });
     return true;
   } catch (e) {
@@ -198,10 +206,16 @@ async function push(): Promise<void> {
   }
 }
 
+/** Identifica a mudança no log sem imprimir o conteúdo. */
+function describeChange(raw: unknown): string {
+  const r = (raw ?? {}) as { entity?: unknown; entityId?: unknown };
+  return `${String(r.entity)}/${String(r.entityId)}`;
+}
+
 /** Baixa tudo desde `since`, aplicando e gravando o cursor a cada página. */
 async function pullAll(
   since: string,
-  fetchPage: (cursor: string) => Promise<z.infer<typeof syncPullResponse>>,
+  fetchPage: (cursor: string) => Promise<z.infer<typeof pullPage>>,
   hooks: { beforePage?: () => Promise<void>; onFirstPage?: () => Promise<void> } = {},
 ): Promise<void> {
   let cursor = since;
@@ -213,7 +227,17 @@ async function pullAll(
     await hooks.beforePage?.();
     if (first) await hooks.onFirstPage?.();
     first = false;
-    await applyRemoteChanges(page.changes);
+    const valid: SyncChange[] = [];
+    for (const raw of page.changes) {
+      const parsed = syncChangeSchema.safeParse(raw);
+      if (parsed.success) valid.push(parsed.data);
+      else
+        console.warn(
+          'Sincronização: mudança desconhecida ou inválida ignorada',
+          describeChange(raw),
+        );
+    }
+    await applyRemoteChanges(valid);
     await updateSettings({ syncCursor: page.cursor });
     if (!page.hasMore) return;
     if (page.cursor === cursor) throw new ApiError(200, 'bad_response', 'cursor não avançou');
@@ -367,7 +391,7 @@ async function run(allowReregister = true): Promise<SyncResult> {
         call(`/v1/sync?since=${encodeURIComponent(cursor)}`, {
           method: 'GET',
           auth: true,
-          schema: syncPullResponse,
+          schema: pullPage,
         }),
       { beforePage: async () => void (await requireConsent()) },
     );
@@ -518,7 +542,7 @@ async function restoreLocked(code: string, key: string, opts: RestoreOptions): P
     await apiFetch(`/v1/sync?since=${PROBE_CURSOR}`, {
       method: 'GET',
       auth: creds,
-      schema: syncPullResponse,
+      schema: pullPage,
     });
     if (local?.registered) {
       // 401: a conta atual já não existe no servidor; qualquer outra falha cancela a troca.
@@ -538,7 +562,7 @@ async function restoreLocked(code: string, key: string, opts: RestoreOptions): P
       apiFetch(`/v1/sync?since=${encodeURIComponent(cursor)}`, {
         method: 'GET',
         auth: creds,
-        schema: syncPullResponse,
+        schema: pullPage,
       }),
     {
       // Primeira página aceita = credenciais válidas.
