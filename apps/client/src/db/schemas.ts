@@ -48,6 +48,8 @@ export const appSettingsSchema = z.object({
   consentSyncedVersion: z.number().int().optional(),
   /** Revogou ou apagou no servidor: ao voltar a sincronizar, reenvia todo o histórico. */
   backfillPending: z.boolean().optional(),
+  /** Dados vindos de um backup: a conta pode ter sido apagada; libera um recadastro após o 401. */
+  restoredFromBackup: z.boolean().optional(),
   unlockedAchievements: z.array(z.object({ id: achievementId, at: iso })),
 });
 

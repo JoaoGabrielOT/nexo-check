@@ -290,8 +290,21 @@ describe('syncNow', () => {
     expect(getSyncSnapshot().error).toBe('unauthorized');
   });
 
-  it('401 com conta apagada no servidor: recadastra com o mesmo código e chave e refaz o histórico', async () => {
+  it('401 sem o flag de backup restaurado não recadastra (exclusão feita em outro aparelho)', async () => {
     await consent();
+    let posts = 0;
+    handler = (url) => {
+      if (url.endsWith('/v1/participants')) posts++;
+      return err(401, 'unauthorized');
+    };
+    expect(await syncNow()).toBe('error');
+    expect(posts).toBe(0);
+    expect(getSyncSnapshot().error).toBe('unauthorized');
+  });
+
+  it('401 com o flag recadastra uma vez com o mesmo código e chave e refaz o histórico', async () => {
+    await consent();
+    await updateSettings({ restoredFromBackup: true });
     await updateSettings({ syncCursor: '77' });
     let accountExists = false;
     const posted: { code: string; key: string }[] = [];
@@ -310,13 +323,24 @@ describe('syncNow', () => {
     const s = await getSettings();
     expect(s.participant).toEqual({ code: 'NEXO-ABCD', key: KEY, registered: true });
     expect(s.backfillPending).toBeFalsy();
+    expect(s.restoredFromBackup).toBeFalsy();
   });
 
-  it('401 e o recadastro dá code_taken: mantém o erro unauthorized', async () => {
+  it('401 e o recadastro dá code_taken: mantém o erro, limpa o flag e não tenta de novo', async () => {
     await consent();
-    handler = (url) =>
-      url.endsWith('/v1/participants') ? err(409, 'code_taken') : err(401, 'unauthorized');
+    await updateSettings({ restoredFromBackup: true });
+    let posts = 0;
+    handler = (url) => {
+      if (url.endsWith('/v1/participants')) {
+        posts++;
+        return err(409, 'code_taken');
+      }
+      return err(401, 'unauthorized');
+    };
     expect(await syncNow()).toBe('error');
+    expect(await syncNow()).toBe('error');
+    expect(posts).toBe(1);
+    expect((await getSettings()).restoredFromBackup).toBeFalsy();
     expect(getSyncSnapshot().error).toBe('unauthorized');
     expect((await getSettings()).participant?.registered).toBe(true);
   });
@@ -606,6 +630,56 @@ describe('restoreFromServer', () => {
       { status: 503 },
     );
     expect(await db.habitEntries.count()).toBe(1);
+  });
+
+  it('só hábitos padrão e credenciais erradas (401): os hábitos continuam', async () => {
+    await db.habits.add({ ...habitChange('default1').payload, key: 'movement' } as never);
+    handler = () => err(401, 'unauthorized');
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toMatchObject({ status: 401 });
+    expect(await db.habits.count()).toBe(1);
+  });
+
+  it('só hábitos padrão e falha de rede no primeiro GET: os hábitos continuam', async () => {
+    await db.habits.add({ ...habitChange('default1').payload, key: 'movement' } as never);
+    httpConfig.retryDelaysMs = [];
+    handler = () => {
+      throw new TypeError('network');
+    };
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toMatchObject({ status: 0 });
+    expect(await db.habits.count()).toBe(1);
+  });
+
+  it('replaceLocal: restaurou, o backfill pendente é limpo e o consentimento volta', async () => {
+    await consent();
+    await updateSettings({ backfillPending: true });
+    await db.habitEntries.add({ id: 'e1' } as never);
+    handler = (url, init) =>
+      init.method === 'DELETE'
+        ? json(204)
+        : json(200, { changes: [habitChange('r1')], cursor: '8', hasMore: false });
+    await restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true });
+    const s = await getSettings();
+    expect(s.backfillPending).toBeFalsy();
+    expect(s.consent?.granted).toBe(true);
+    expect(await outboxCount()).toBe(0);
+  });
+
+  it('replaceLocal: depois do DELETE, uma falha no pull deixa participante e consentimento nulos', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    httpConfig.retryDelaysMs = [];
+    let gets = 0;
+    handler = (url, init) => {
+      if (init.method === 'DELETE') return json(204);
+      return ++gets === 1 ? emptyPull() : err(503, 'unavailable');
+    };
+    await expect(restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true })).rejects.toMatchObject(
+      { status: 503 },
+    );
+    const s = await getSettings();
+    expect(s.participant).toBeNull();
+    expect(s.consent).toBeNull();
+    expect(await db.habitEntries.count()).toBe(0);
   });
 
   it('aparelho só com hábitos padrão: restaura sem duplicar os hábitos', async () => {

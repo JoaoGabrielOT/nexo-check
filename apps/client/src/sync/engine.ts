@@ -327,13 +327,16 @@ async function sendCheckins(soft: (e: unknown) => void): Promise<void> {
 
 /**
  * Com `registered` e 401, a conta pode ter sido apagada no servidor (backup restaurado depois
- * de uma exclusão). Tenta cadastrar de novo com o mesmo código e chave: 201 = conta nova, então
- * o histórico precisa ser reenviado; qualquer outra resposta mantém o erro de autenticação.
+ * de uma exclusão). Só tenta com o flag `restoredFromBackup`: sem ele, o 401 pode ser uma exclusão
+ * feita de propósito em outro aparelho (LGPD), que não pode ser desfeita. Uma tentativa só (o flag
+ * é limpo antes): 201 = conta nova, então o histórico é reenviado; outra resposta mantém o erro.
  */
 async function reregister(): Promise<boolean> {
   try {
     const { consent, participant } = await requireConsent();
-    if (!consent || !participant.registered) return false;
+    const { restoredFromBackup } = await getSettings();
+    if (!consent || !participant.registered || !restoredFromBackup) return false;
+    await updateSettings({ restoredFromBackup: false });
     await call('/v1/participants', {
       method: 'POST',
       body: JSON.stringify({
@@ -418,7 +421,7 @@ async function run(allowReregister = true): Promise<SyncResult> {
     return 'error';
   }
   if (!(await stillConsented())) return 'skipped';
-  await updateSettings({ lastSyncAt: now().toISOString() });
+  await updateSettings({ lastSyncAt: now().toISOString(), restoredFromBackup: false });
   setSnapshot({ phase: 'idle', error: null });
   return 'synced';
 }
@@ -530,7 +533,7 @@ async function wipeLocalData(): Promise<void> {
 
 async function restoreLocked(code: string, key: string, opts: RestoreOptions): Promise<void> {
   const creds: Credentials = { code: normalizeCode(code), key: normalizeRecoveryKey(key) };
-  const local = (await getSettings()).participant;
+  const { participant: local, consent: priorConsent } = await getSettings();
   const otherAccount = local === null || local.code !== creds.code;
   // Trocar de participante com pendências enviaria os dados de um para a conta do outro.
   if (otherAccount && local && (await hasPendingData())) throw new RestoreBlockedError();
@@ -550,11 +553,14 @@ async function restoreLocked(code: string, key: string, opts: RestoreOptions): P
         if (!(e instanceof ApiError && e.status === 401)) throw e;
       });
     }
+    // Antes do wipe: um crash no meio não pode recadastrar a conta apagada.
+    await updateSettings({
+      participant: null,
+      consent: null,
+      syncCursor: null,
+      consentSyncedVersion: undefined,
+    });
     await wipeLocalData();
-    await updateSettings({ participant: null, syncCursor: null, consentSyncedVersion: undefined });
-  } else if (otherAccount) {
-    // Só hábitos padrão: os da conta restaurada substituem, em vez de somar.
-    await db.habits.clear();
   }
   await pullAll(
     '0',
@@ -566,12 +572,18 @@ async function restoreLocked(code: string, key: string, opts: RestoreOptions): P
       }),
     {
       // Primeira página aceita = credenciais válidas.
-      onFirstPage: () =>
-        updateSettings({
+      onFirstPage: async () => {
+        // Só aqui, com as credenciais aceitas, os hábitos padrão podem ser trocados.
+        if (otherAccount && !replace) await db.habits.clear();
+        await updateSettings({
           participant: { ...creds, registered: true },
           syncCursor: null,
           consentSyncedVersion: undefined,
-        }),
+          // O histórico recém-baixado já está no servidor: não reenviar.
+          backfillPending: false,
+          ...(replace && { consent: priorConsent }),
+        });
+      },
     },
   );
 }

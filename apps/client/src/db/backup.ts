@@ -44,9 +44,10 @@ export async function importAll(file: unknown): Promise<void> {
       !!data.settings.consent?.granted && data.settings.consent.version >= CONSENT_VERSION;
     // O backup não leva o outbox: com consentimento válido, reenvia tudo (LWW no servidor
     // torna o reenvio inofensivo) e zera o cursor para reconciliar com o servidor.
+    const settings = { ...data.settings, restoredFromBackup: true };
     await db.settings.put({
       key: 'app',
-      value: consented ? { ...data.settings, syncCursor: null } : data.settings,
+      value: consented ? { ...settings, syncCursor: null } : settings,
     });
     if (consented) {
       for (const h of await db.habits.toArray()) await enqueueIfConsented('habit', h);

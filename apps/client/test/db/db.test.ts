@@ -342,6 +342,8 @@ describe('backup', () => {
     const s = await getSettings();
     expect(s.participant?.code).toBe('NEXO-ABCD');
     expect(s.consent?.granted).toBe(true);
+    // O backup pode trazer uma conta já apagada no servidor: libera um recadastro automático.
+    expect(s.restoredFromBackup).toBe(true);
   });
 
   it('com consentimento válido reenfileira cada linha sincronizável, sem notas, e zera o cursor', async () => {
