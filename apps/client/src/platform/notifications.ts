@@ -174,7 +174,11 @@ function lazyNative(
   load: () => Promise<NotificationAdapter>,
 ): NotificationAdapter {
   let loaded: Promise<NotificationAdapter> | undefined;
-  const adapter = () => (loaded ??= load());
+  const adapter = () =>
+    (loaded ??= load().catch((e: unknown) => {
+      loaded = undefined; // permite tentar o import de novo
+      throw e;
+    }));
   return {
     persistent,
     requestPermission: async () => (await adapter()).requestPermission(),

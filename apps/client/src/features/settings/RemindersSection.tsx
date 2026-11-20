@@ -22,16 +22,33 @@ const LIMITATION = {
 const field =
   'min-h-11 rounded-control border-2 border-text/40 bg-surface px-3 text-sm font-bold text-text tabular-nums focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-bl';
 
-/** Reagenda os lembretes sempre que as configurações mudam; timers morrem com a tela, o agendamento nativo não. */
+const warn = () => console.warn('lembretes: falha ao atualizar o agendamento');
+
+/**
+ * Reagenda os lembretes quando o conteúdo das configurações muda e quando o app volta ao foco
+ * (depois de suspender, timers atrasam e o agendamento nativo pode ter falhado). Timers morrem
+ * com a tela; o agendamento nativo não.
+ */
 export function useReminderScheduling(reminders: ReminderSettings | undefined): void {
+  // Serializado: outras gravações em `settings` (ex.: cursor de sync) não podem reagendar.
+  const key = reminders && JSON.stringify(reminders);
   useEffect(() => {
-    if (!reminders) return;
+    if (!key) return;
+    const rules = JSON.parse(key) as ReminderSettings;
     const adapter = getNotificationAdapter();
-    adapter.schedule(reminders).catch(() => undefined);
-    return () => {
-      if (!adapter.persistent) void adapter.cancelAll();
+    const run = () => adapter.schedule(rules).catch(warn);
+    void run();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void run();
     };
-  }, [reminders]);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', run);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', run);
+      if (!adapter.persistent) adapter.cancelAll().catch(warn);
+    };
+  }, [key]);
 }
 
 export function RemindersSection() {
@@ -68,10 +85,11 @@ export function RemindersSection() {
   // O pedido de permissão acontece ao ligar um lembrete (gesto da pessoa), enquanto ainda não foi decidido.
   const toggle = async (kind: Kind, enabled: boolean) => {
     const adapter = getNotificationAdapter();
-    if (enabled && (await adapter.getPermission()) === 'default') {
+    const current = await adapter.getPermission();
+    if (enabled && current === 'default') {
       await adapter.requestPermission();
       setPermission(await adapter.getPermission());
-    }
+    } else setPermission(current);
     await change(kind, { enabled });
   };
 

@@ -24,6 +24,7 @@ const plugin = vi.hoisted(() => {
       }
     }),
     pending: vi.fn(async () => state.scheduled.map((s) => ({ ...s }))),
+    failNext: false,
     cancel: vi.fn(async (ids: number[]) => {
       state.scheduled = state.scheduled.filter((s) => !ids.includes(s.id));
     }),
@@ -35,7 +36,13 @@ vi.mock('@tauri-apps/plugin-notification', () => ({
   isPermissionGranted: plugin.isPermissionGranted,
   requestPermission: plugin.requestPermission,
   sendNotification: plugin.sendNotification,
-  pending: plugin.pending,
+  pending: () => {
+    if (plugin.failNext) {
+      plugin.failNext = false;
+      return Promise.reject(new Error('pending falhou'));
+    }
+    return plugin.pending();
+  },
   cancel: plugin.cancel,
   createChannel: plugin.createChannel,
   Importance: { Default: 3 },
@@ -167,6 +174,37 @@ describe('androidNotifications', () => {
     expect(await androidNotifications.getPermission()).toBe('granted');
     plugin.state.permission = false;
     expect(await androidNotifications.requestPermission()).toBe(false);
+  });
+});
+
+describe('permissão negada no nativo', () => {
+  it('lembra a recusa: getPermission devolve denied mesmo com Notification.permission default', async () => {
+    await androidNotifications.getPermission(); // concedida: limpa a recusa de testes anteriores
+    plugin.state.permission = false;
+    vi.stubGlobal('Notification', { permission: 'default' });
+    expect(await androidNotifications.getPermission()).toBe('default');
+    expect(await androidNotifications.requestPermission()).toBe(false);
+    expect(await androidNotifications.getPermission()).toBe('denied');
+    plugin.state.permission = true;
+    expect(await androidNotifications.getPermission()).toBe('granted');
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('agendamento órfão', () => {
+  it('pending() falhando ao desligar tudo avisa e a próxima tentativa cancela', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await androidNotifications.schedule({
+      ...DEFAULT_REMINDERS,
+      movement: { enabled: true, time: '08:00' },
+    });
+    plugin.failNext = true;
+    await expect(androidNotifications.schedule(DEFAULT_REMINDERS)).rejects.toThrow();
+    expect(warn).toHaveBeenCalled();
+    expect(plugin.state.scheduled).toHaveLength(1);
+    await androidNotifications.schedule(DEFAULT_REMINDERS);
+    expect(plugin.state.scheduled).toEqual([]);
+    warn.mockRestore();
   });
 });
 

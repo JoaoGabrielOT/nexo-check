@@ -63,14 +63,22 @@ export function reminderSlots(rules: ReminderSettings): ReminderSlot[] {
   return slots;
 }
 
+// No WebView `Notification.permission` fica em 'default' mesmo depois da recusa; guardamos o último pedido.
+let lastDenied = false;
+
 async function getPermission(): Promise<PermissionStatus> {
-  if (await isPermissionGranted()) return 'granted';
-  return typeof Notification !== 'undefined' && Notification.permission === 'denied'
-    ? 'denied'
-    : 'default';
+  if (await isPermissionGranted()) {
+    lastDenied = false;
+    return 'granted';
+  }
+  return lastDenied ? 'denied' : 'default';
 }
 
-const askPermission = async (): Promise<boolean> => (await requestPermission()) === 'granted';
+const askPermission = async (): Promise<boolean> => {
+  const result = await requestPermission();
+  lastDenied = result === 'denied';
+  return result === 'granted';
+};
 
 /** Windows: o plugin ignora o agendamento, então os timers do app disparam a notificação nativa. */
 export const desktopNotifications: NotificationAdapter = createTimerNotifications({
@@ -90,7 +98,10 @@ async function cancelOurs(): Promise<void> {
 let queue: Promise<unknown> = Promise.resolve();
 const serial = <T>(task: () => Promise<T>): Promise<T> => {
   const run = queue.then(task);
-  queue = run.catch(() => undefined);
+  // Se pending()/cancel() falharem, o próximo schedule (e o retorno do foco) cancela de novo as faixas.
+  queue = run.catch(() => {
+    console.warn('lembretes: falha ao atualizar o agendamento nativo');
+  });
   return run;
 };
 

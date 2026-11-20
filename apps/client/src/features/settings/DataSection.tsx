@@ -13,6 +13,7 @@ import {
   Tile,
   toast,
 } from '@nexo/ui';
+import { getNotificationAdapter } from '../../platform/notifications';
 import { BackupError, exportAll, getSettings, importAll, wipeLocal } from '../../db';
 import { now } from '../../db/clock';
 import { backupFileSchema } from '../../db/schemas';
@@ -104,6 +105,10 @@ export function DataSection({ deleteRemote }: DataSectionProps) {
     setPending(null);
     try {
       await wipeLocal();
+      // Sem depender do Layout remontar: o agendamento nativo vive fora do app.
+      await getNotificationAdapter()
+        .cancelAll()
+        .catch(() => console.warn('lembretes: falha ao cancelar o agendamento'));
       navigate('/onboarding', { replace: true });
     } catch {
       report();
