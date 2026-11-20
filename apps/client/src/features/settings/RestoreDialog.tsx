@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -34,7 +34,11 @@ export function RestoreDialog({ open, onOpenChange, onRestored }: RestoreDialogP
   const [confirming, setConfirming] = useState(false);
 
   // Fechar por qualquer caminho (Cancelar, Esc, fora) volta ao passo inicial, sem restos.
+  // Cada fechamento invalida a restauração em andamento: ela não pode mexer no diálogo depois.
+  const attempt = useRef(0);
   const close = () => {
+    attempt.current += 1;
+    setBusy(false);
     onOpenChange(false);
     setError(null);
     setConfirming(false);
@@ -43,23 +47,27 @@ export function RestoreDialog({ open, onOpenChange, onRestored }: RestoreDialogP
   };
 
   const restore = async (replaceLocal = false) => {
+    const mine = ++attempt.current;
+    const stale = () => attempt.current !== mine;
     setBusy(true);
     setError(null);
     try {
       await restoreFromServer(code, key, { replaceLocal });
       await onRestored();
+      if (stale()) return;
       onOpenChange(false);
       setCode('');
       setKey('');
       setConfirming(false);
     } catch (e) {
+      if (stale()) return;
       if (e instanceof RestoreNeedsConfirmError) setConfirming(true);
       else if (e instanceof RestoreBlockedError) setError(t('settings.sync.restoreBlocked'));
       else if (e instanceof ApiError && (e.status === 401 || e.status === 400)) {
         setError(t('settings.sync.restoreInvalid'));
       } else setError(t('settings.sync.restoreFailed'));
     } finally {
-      setBusy(false);
+      if (!stale()) setBusy(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -116,7 +116,9 @@ describe('SyncSection', () => {
     await user.type(await screen.findByLabelText('Código de participante'), 'nexo-wxyz');
     await user.type(screen.getByLabelText('Chave de recuperação'), KEY);
     await user.click(screen.getByRole('button', { name: 'Restaurar' }));
-    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    // O passo inicial também tem um Cancelar: espere a etapa de confirmação antes de cancelar.
+    await screen.findByText('Substituir os dados deste aparelho?');
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(fetchMock).not.toHaveBeenCalled();
     expect(await db.habitEntries.count()).toBe(1);
     expect((await getSettings()).participant?.code).toBe('NEXO-ABCD');
@@ -125,6 +127,24 @@ describe('SyncSection', () => {
     await user.click(screen.getByRole('button', { name: 'Restaurar em outro aparelho' }));
     expect(await screen.findByLabelText('Código de participante')).toHaveValue('');
     expect(screen.getByLabelText('Chave de recuperação')).toHaveValue('');
+    expect(screen.queryByText('Substituir os dados deste aparelho?')).toBeNull();
+  });
+
+  it('cancelar enquanto a restauração ainda confere o aparelho não reabre na confirmação', async () => {
+    const user = userEvent.setup();
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    renderSection();
+    await user.click(await screen.findByRole('button', { name: 'Restaurar em outro aparelho' }));
+    await user.type(await screen.findByLabelText('Código de participante'), 'nexo-wxyz');
+    await user.type(screen.getByLabelText('Chave de recuperação'), KEY);
+    // Clique síncrono em Restaurar e Cancelar, antes de a leitura do Dexie terminar.
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await new Promise((r) => setTimeout(r, 100));
+
+    await user.click(await screen.findByRole('button', { name: 'Restaurar em outro aparelho' }));
+    expect(await screen.findByLabelText('Código de participante')).toHaveValue('');
     expect(screen.queryByText('Substituir os dados deste aparelho?')).toBeNull();
   });
 
