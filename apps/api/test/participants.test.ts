@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app';
 import type { PrismaClient } from '../src/db';
-import { requireParticipant } from '../src/plugins/participant-auth';
+import { clearParticipantAuthCache, requireParticipant } from '../src/plugins/participant-auth';
 import { makeTestApp, testEnv } from './helpers';
 
 const CODE = 'NEXO-AB23';
@@ -130,6 +130,28 @@ describe('participantes', () => {
       });
       expect(del.statusCode).toBe(204);
       expect((await me()).statusCode).toBe(401);
+    });
+
+    it('autenticação em andamento durante o DELETE não repõe a credencial no cache', async () => {
+      await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+      const id = (await prisma.participant.findUniqueOrThrow({ where: { code: CODE } })).id;
+      const original = prisma.participant.findUnique.bind(prisma.participant);
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((r) => (release = r));
+      const spy = vi
+        .spyOn(prisma.participant, 'findUnique')
+        .mockImplementationOnce(((args: never) => gate.then(() => original(args))) as never);
+      const slow = me();
+      await new Promise((r) => setTimeout(r, 20));
+      // O DELETE de outra requisição termina enquanto a autenticação ainda espera.
+      clearParticipantAuthCache(prisma, id);
+      release();
+      expect((await slow).statusCode).toBe(200);
+      spy.mockClear();
+      expect((await me()).statusCode).toBe(200);
+      // Não estava no cache: consultou o banco de novo.
+      expect(spy).toHaveBeenCalledTimes(1);
+      spy.mockRestore();
     });
 
     it('expira depois de cerca de 5 minutos', async () => {
