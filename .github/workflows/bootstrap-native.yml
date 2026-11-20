@@ -1,0 +1,33 @@
+name: Bootstrap native
+# Gera e commita arquivos que dependem de Rust/Android SDK (ausentes na máquina de desenvolvimento).
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Arquivo a gerar
+        type: choice
+        required: true
+        options:
+          - cargo-lock
+permissions:
+  contents: write
+jobs:
+  cargo-lock:
+    if: inputs.task == 'cargo-lock'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo generate-lockfile --manifest-path apps/client/src-tauri/Cargo.toml
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/client/src-tauri/Cargo.lock
+          if git diff --cached --quiet; then
+            echo 'Cargo.lock já está atualizado.'
+            exit 0
+          fi
+          git commit -m 'chore(tauri): update cargo lockfile'
+          git pull --rebase origin main
+          git push origin HEAD:main

@@ -1,0 +1,81 @@
+name: Native build
+on:
+  workflow_call:
+    inputs:
+      release-id:
+        type: string
+        default: ''
+      tag:
+        type: string
+        default: ''
+      notes:
+        type: string
+        default: ''
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - apps/client/src-tauri/**
+      - packages/tauri-plugin-apk-updater/**
+      - .github/workflows/native-build.yml
+permissions:
+  contents: write
+env:
+  VITE_API_URL: https://nexo-check-api.onrender.com
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/client/src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/client
+          tauriScript: pnpm tauri
+          releaseId: ${{ inputs.release-id }}
+          releaseBody: ${{ inputs.notes }}
+      - name: Smoke (abre o app, confere que segue vivo e captura a tela)
+        shell: pwsh
+        run: |
+          $dir = 'apps/client/src-tauri/target/release'
+          Get-ChildItem "$dir/*.exe" | ForEach-Object { Write-Host "exe: $($_.Name)" }
+          $proc = Start-Process "$dir/nexo-check.exe" -PassThru
+          Start-Sleep -Seconds 20
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$PWD/windows-smoke.png")
+          $alive = -not $proc.HasExited
+          if ($alive) { Stop-Process -Id $proc.Id -Force }
+          if (-not $alive) { throw "O app encerrou sozinho (exit code $($proc.ExitCode))." }
+      - name: Instalador NSIS silencioso
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem 'apps/client/src-tauri/target/release/bundle/nsis/*-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'Instalador NSIS não encontrado.' }
+          $p = Start-Process $setup.FullName -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Instalador saiu com código $($p.ExitCode)." }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-bundle
+          path: apps/client/src-tauri/target/release/bundle/**
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-smoke
+          path: windows-smoke.png
+          if-no-files-found: warn

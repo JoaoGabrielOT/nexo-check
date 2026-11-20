@@ -12,15 +12,7 @@
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>NEXO Check</title>
-    <script>
-      // Aplica o tema escolhido antes do React, para não piscar claro (espelho em localStorage).
-      try {
-        var t = localStorage.getItem('nexo-theme');
-        if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
-      } catch (e) {}
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

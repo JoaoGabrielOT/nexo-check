@@ -37,3 +37,31 @@ jobs:
           name: playwright-report
           path: apps/client/playwright-report
           retention-days: 7
+  # Valida o shell Tauri sem empacotar: bundle nativo (sem admin, PWA nem service worker) e cargo check.
+  # Sem --locked enquanto o Cargo.lock não existe (o workflow bootstrap-native o gera e commita);
+  # depois que ele existir, o job passa a exigi-lo.
+  tauri-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/client/src-tauri -> target
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter client build
+        env:
+          TAURI_ENV_PLATFORM: windows
+      - run: node apps/client/scripts/check-native-bundle.mjs apps/client/dist
+      - name: cargo check
+        run: |
+          if [ -f apps/client/src-tauri/Cargo.lock ]; then LOCKED=--locked; fi
+          cargo check $LOCKED --manifest-path apps/client/src-tauri/Cargo.toml

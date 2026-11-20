@@ -17,3 +17,5 @@ abrir-sessao-claude.cmd
 src-tauri/target
 .superpowers/
 dist-native
+apps/client/src-tauri/gen/android/keystore.properties
+*.p12
