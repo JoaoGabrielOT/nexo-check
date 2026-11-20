@@ -33,9 +33,9 @@ const envSchema = z
         .string()
         .trim()
         .transform((v) => v.toLowerCase())
-        // Só cabeçalhos que o proxy sobrescreve: um que o cliente controla (x-forwarded-for,
-        // user-agent...) deixaria burlar o rate limit trocando o valor a cada requisição.
-        .pipe(z.enum(['cf-connecting-ip', 'true-client-ip', 'x-real-ip']))
+        // Só o cabeçalho que a Cloudflare sempre sobrescreve: os outros (x-forwarded-for,
+        // x-real-ip, true-client-ip...) deixaria burlar o rate limit trocando o valor a cada requisição.
+        .pipe(z.literal('cf-connecting-ip'))
         .optional(),
     ),
     NODE_ENV: z.preprocess(

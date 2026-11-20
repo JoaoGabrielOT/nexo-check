@@ -48,13 +48,13 @@ describe('parseEnv', () => {
   });
 
   it('CLIENT_IP_HEADER aceita só cabeçalhos que o proxy sobrescreve', () => {
-    for (const h of ['cf-connecting-ip', 'True-Client-IP', ' x-real-ip ']) {
+    for (const h of ['cf-connecting-ip', ' CF-Connecting-IP ']) {
       expect(parseEnv({ ...base, CLIENT_IP_HEADER: h }).CLIENT_IP_HEADER).toBe(
         h.trim().toLowerCase(),
       );
     }
     expect(parseEnv({ ...base, CLIENT_IP_HEADER: '' }).CLIENT_IP_HEADER).toBeUndefined();
-    for (const h of ['x-forwarded-for', 'user-agent', 'x-custom']) {
+    for (const h of ['x-forwarded-for', 'true-client-ip', 'x-real-ip', 'user-agent']) {
       expect(() => parseEnv({ ...base, CLIENT_IP_HEADER: h })).toThrow(/CLIENT_IP_HEADER/);
     }
   });

@@ -128,18 +128,18 @@ Com o domínio da Vercel definido, volte ao Render e ajuste `CORS_ORIGINS` e `PU
 
 API (`apps/api/.env`, modelo em `apps/api/.env.example`):
 
-| Variável           | Obrigatória | Descrição                                                                                                                              |
-| ------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`     | sim         | Conexão com o Postgres (use a URL com pooler em produção)                                                                              |
-| `DIRECT_URL`       | não         | Conexão direta, usada só pelas migrações (se usar pooler)                                                                              |
-| `ADMIN_PASSWORD`   | sim         | Senha do painel admin (mínimo 12 caracteres)                                                                                           |
-| `ADMIN_JWT_SECRET` | sim         | Segredo do JWT do admin (mínimo 32 caracteres)                                                                                         |
-| `CORS_ORIGINS`     | não         | Origens permitidas no CORS, separadas por vírgula                                                                                      |
-| `PUBLIC_WEB_URL`   | sim         | URL pública do client (usada nos links e QR das sessões)                                                                               |
-| `PORT`             | não         | Porta da API (padrão 3333)                                                                                                             |
-| `TRUST_PROXY_HOPS` | não         | Saltos de proxy confiáveis (padrão 1; Render = 1)                                                                                      |
-| `CLIENT_IP_HEADER` | não         | Cabeçalho com o IP real do cliente para o rate limit (`cf-connecting-ip`, `true-client-ip` ou `x-real-ip`); sem ele, usa o IP do proxy |
-| `NODE_ENV`         | não         | `development`, `test` ou `production` (padrão `development`)                                                                           |
+| Variável           | Obrigatória | Descrição                                                                                                         |
+| ------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`     | sim         | Conexão com o Postgres (use a URL com pooler em produção)                                                         |
+| `DIRECT_URL`       | não         | Conexão direta, usada só pelas migrações (se usar pooler)                                                         |
+| `ADMIN_PASSWORD`   | sim         | Senha do painel admin (mínimo 12 caracteres)                                                                      |
+| `ADMIN_JWT_SECRET` | sim         | Segredo do JWT do admin (mínimo 32 caracteres)                                                                    |
+| `CORS_ORIGINS`     | não         | Origens permitidas no CORS, separadas por vírgula                                                                 |
+| `PUBLIC_WEB_URL`   | sim         | URL pública do client (usada nos links e QR das sessões)                                                          |
+| `PORT`             | não         | Porta da API (padrão 3333)                                                                                        |
+| `TRUST_PROXY_HOPS` | não         | Saltos de proxy confiáveis (padrão 1; Render = 1)                                                                 |
+| `CLIENT_IP_HEADER` | não         | Cabeçalho com o IP real do cliente para o rate limit (só `cf-connecting-ip` é aceito); sem ele, usa o IP do proxy |
+| `NODE_ENV`         | não         | `development`, `test` ou `production` (padrão `development`)                                                      |
 
 > `CLIENT_IP_HEADER`: atrás de proxies (Cloudflare e Render), o IP visto pela API é o do proxy, e vários clientes dividiriam a mesma cota do rate limit. Depois do primeiro deploy, veja no log da API a linha `ip_headers` (só presença dos cabeçalhos e contagem do `x-forwarded-for`, nunca IPs) e defina a variável com o cabeçalho que chegar, por exemplo `cf-connecting-ip`. Limites atuais: 100 requisições/min por cliente, 60 cadastros/h e 5 logins admin/15 min.
 
