@@ -51,15 +51,18 @@ jobs:
           $dir = 'apps/client/src-tauri/target/release'
           Get-ChildItem "$dir/*.exe" | ForEach-Object { Write-Host "exe: $($_.Name)" }
           $proc = Start-Process "$dir/nexo-check.exe" -PassThru
-          Start-Sleep -Seconds 20
-          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
-          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
-          $bmp.Save("$PWD/windows-smoke.png")
-          $alive = -not $proc.HasExited
-          if ($alive) { Stop-Process -Id $proc.Id -Force }
-          if (-not $alive) { throw "O app encerrou sozinho (exit code $($proc.ExitCode))." }
+          try {
+            Start-Sleep -Seconds 20
+            if ($proc.HasExited) { throw "O app encerrou sozinho (exit code $($proc.ExitCode))." }
+            Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save("$PWD/windows-smoke.png")
+          } finally {
+            # /T encerra também os processos filhos do WebView2.
+            if (-not $proc.HasExited) { taskkill /T /F /PID $proc.Id | Out-Null }
+          }
       - name: Instalador NSIS silencioso
         shell: pwsh
         run: |

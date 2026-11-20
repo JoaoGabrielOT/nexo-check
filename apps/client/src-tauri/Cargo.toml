@@ -9,10 +9,12 @@ name = "nexo_check_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.7", features = [] }
 
+# Minors fixadas para acompanhar os pacotes @tauri-apps/* do npm (o tauri build aborta
+# com "mismatched Tauri packages" se uma crate subir de minor e o pacote npm não).
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-fs = "2"
+tauri = { version = "2.12", features = [] }
+tauri-plugin-opener = "2.7"
+tauri-plugin-dialog = "2.8"
+tauri-plugin-fs = "2.7"

@@ -61,7 +61,7 @@ jobs:
         env:
           TAURI_ENV_PLATFORM: windows
       - run: node apps/client/scripts/check-native-bundle.mjs apps/client/dist
+      # Sem --locked: as tasks que mudam o Cargo.toml fazem push antes de o bootstrap regenerar
+      # o lock (não há Rust local), e o --locked deixaria o CI vermelho nesse intervalo.
       - name: cargo check
-        run: |
-          if [ -f apps/client/src-tauri/Cargo.lock ]; then LOCKED=--locked; fi
-          cargo check $LOCKED --manifest-path apps/client/src-tauri/Cargo.toml
+        run: cargo check --manifest-path apps/client/src-tauri/Cargo.toml

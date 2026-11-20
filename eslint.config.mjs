@@ -9,7 +9,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/dist-native/**',
-      '**/public/**',
+      'apps/client/public/theme-init.js',
       '**/src-tauri/target/**',
       '**/src-tauri/gen/**',
       '**/.turbo/**',

@@ -18,7 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo generate-lockfile --manifest-path apps/client/src-tauri/Cargo.toml
+      # Sem lock: gera do zero. Com lock: só completa o que o Cargo.toml mudou (o
+      # generate-lockfile atualizaria todas as dependências).
+      - run: |
+          m=apps/client/src-tauri/Cargo.toml
+          if [ -f apps/client/src-tauri/Cargo.lock ]; then
+            cargo metadata --format-version 1 --manifest-path "$m" > /dev/null
+          else
+            cargo generate-lockfile --manifest-path "$m"
+          fi
       - name: Commit
         run: |
           git config user.name 'github-actions[bot]'
