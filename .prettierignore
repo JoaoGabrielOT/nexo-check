@@ -12,3 +12,4 @@ packages/shared/content
 apps/client/src-tauri/target
 apps/client/src-tauri/gen
 CHANGELOG.md
+dist-apk

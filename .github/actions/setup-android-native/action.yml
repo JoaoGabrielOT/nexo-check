@@ -1,0 +1,18 @@
+name: Setup Android native
+description: JDK 17, Android SDK, NDK e Rust com os targets Android (sem Node/pnpm, que cada job configura).
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+    - uses: android-actions/setup-android@v3
+    - name: NDK
+      shell: bash
+      run: |
+        sdkmanager "ndk;27.2.12479018"
+        echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android

@@ -9,6 +9,7 @@ on:
         required: true
         options:
           - cargo-lock
+          - android-init
 permissions:
   contents: write
 jobs:
@@ -37,5 +38,48 @@ jobs:
             exit 0
           fi
           git commit -m 'chore(tauri): update cargo lockfile'
+          git pull --rebase origin main
+          git push origin HEAD:main
+  android-init:
+    if: inputs.task == 'android-init'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: ./.github/actions/setup-android-native
+      - run: pnpm install --frozen-lockfile
+      - name: Gera o projeto Android e os ícones
+        run: |
+          pnpm --filter client tauri android init --ci
+          pnpm --filter client tauri icon public/icons/icon.svg
+      # Mesma regra do cargo-lock: com lock, só completa; sem lock, gera.
+      - run: |
+          m=apps/client/src-tauri/Cargo.toml
+          if [ -f apps/client/src-tauri/Cargo.lock ]; then
+            cargo metadata --format-version 1 --manifest-path "$m" > /dev/null
+          else
+            cargo generate-lockfile --manifest-path "$m"
+          fi
+      - name: Projetos Gradle (nome do módulo do app)
+        run: cd apps/client/src-tauri/gen/android && ./gradlew projects
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/client/src-tauri/gen apps/client/src-tauri/icons apps/client/src-tauri/Cargo.lock
+          # Nada que carregue segredo ou lixo de build pode entrar no git.
+          if git diff --cached --name-only | grep -E '(^|/)(keystore\.properties|local\.properties)$|(^|/)(build|\.gradle)/|\.(jks|keystore)$'; then
+            echo 'Arquivo proibido no commit.'
+            exit 1
+          fi
+          if git diff --cached --quiet; then
+            echo 'gen/android já está atualizado.'
+            exit 0
+          fi
+          git commit -m 'chore(android): bootstrap gen/android project'
           git pull --rebase origin main
           git push origin HEAD:main
