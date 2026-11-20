@@ -144,14 +144,14 @@ describe('rate limit e CORS normalizado', () => {
       'cf-connecting-ip': '198.51.100.77',
       'x-forwarded-for': '203.0.113.5, 10.1.1.1',
     };
-    // O health check e a sondagem de boot do Render (HEAD / via loopback) não passam pelo
-    // proxy: não servem de amostra.
-    const lb = '10.225.26.217';
-    await app.inject({ method: 'GET', url: '/health', remoteAddress: lb });
-    await app.inject({ method: 'HEAD', url: '/', remoteAddress: '127.0.0.1' });
-    await app.inject({ method: 'GET', url: '/nada', remoteAddress: '::1' });
-    await app.inject({ method: 'GET', url: '/nada', headers, remoteAddress: lb });
-    await app.inject({ method: 'GET', url: '/nada', headers, remoteAddress: lb });
+    // O health check e a sondagem de boot do Render (HEAD / sem X-Forwarded-For) não passam
+    // pelo proxy: não servem de amostra. No Render o tráfego real também chega via loopback
+    // (proxy local), então o endereço do socket não distingue.
+    await app.inject({ method: 'GET', url: '/health', headers });
+    await app.inject({ method: 'HEAD', url: '/' });
+    await app.inject({ method: 'GET', url: '/nada', headers: { 'cf-connecting-ip': '1.2.3.4' } });
+    await app.inject({ method: 'GET', url: '/nada', headers });
+    await app.inject({ method: 'GET', url: '/nada', headers });
     await app.close();
     const diag = lines.filter((l) => l.includes('ip_headers'));
     expect(diag).toHaveLength(1);
