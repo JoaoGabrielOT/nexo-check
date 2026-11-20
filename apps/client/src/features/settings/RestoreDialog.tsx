@@ -33,6 +33,15 @@ export function RestoreDialog({ open, onOpenChange, onRestored }: RestoreDialogP
   // Há dados locais ou outra conta cadastrada: a pessoa escolhe apagar tudo e restaurar, ou cancelar.
   const [confirming, setConfirming] = useState(false);
 
+  // Fechar por qualquer caminho (Cancelar, Esc, fora) volta ao passo inicial, sem restos.
+  const close = () => {
+    onOpenChange(false);
+    setError(null);
+    setConfirming(false);
+    setCode('');
+    setKey('');
+  };
+
   const restore = async (replaceLocal = false) => {
     setBusy(true);
     setError(null);
@@ -55,16 +64,7 @@ export function RestoreDialog({ open, onOpenChange, onRestored }: RestoreDialogP
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next);
-        if (!next) {
-          setError(null);
-          setConfirming(false);
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
       <DialogContent>
         {confirming ? (
           <>
@@ -76,7 +76,7 @@ export function RestoreDialog({ open, onOpenChange, onRestored }: RestoreDialogP
               </p>
             )}
             <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <Button variant="secondary" disabled={busy} onClick={() => onOpenChange(false)}>
+              <Button variant="secondary" disabled={busy} onClick={close}>
                 {t('settings.sync.cancel')}
               </Button>
               <Button variant="danger" disabled={busy} onClick={() => void restore(true)}>

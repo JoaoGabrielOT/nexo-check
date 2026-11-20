@@ -110,6 +110,12 @@ describe('SyncSection', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(await db.habitEntries.count()).toBe(1);
     expect((await getSettings()).participant?.code).toBe('NEXO-ABCD');
+
+    // Reabrir começa do passo inicial, com os campos vazios.
+    await user.click(screen.getByRole('button', { name: 'Restaurar em outro aparelho' }));
+    expect(await screen.findByLabelText('Código de participante')).toHaveValue('');
+    expect(screen.getByLabelText('Chave de recuperação')).toHaveValue('');
+    expect(screen.queryByText('Substituir os dados deste aparelho?')).toBeNull();
   });
 
   it('restaurar mostra erro com credenciais incorretas e funciona com as corretas', async () => {
