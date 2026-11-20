@@ -326,6 +326,9 @@
       "revoked": "Consentimento revogado.",
       "revokedDeleteFailed": "Consentimento revogado, mas não foi possível apagar os dados no servidor. Tente de novo mais tarde, com internet.",
       "cancel": "Cancelar",
+      "restoreReplaceTitle": "Substituir os dados deste aparelho?",
+      "restoreReplaceBody": "Este aparelho já tem dados ou outra conta de participante. Para restaurar a conta informada, a conta atual será apagada do servidor (se estiver cadastrada) e os dados deste aparelho serão apagados. Isso não pode ser desfeito.",
+      "restoreReplaceConfirm": "Apagar a conta atual (no servidor, se houver) e os dados deste aparelho, depois restaurar",
       "restoreBlocked": "Este aparelho tem registros ainda não enviados de outro participante. Sincronize antes de restaurar, ou apague os dados deste aparelho."
     },
     "data": {

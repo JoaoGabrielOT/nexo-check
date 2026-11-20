@@ -14,6 +14,7 @@ import {
   deleteRemoteParticipant,
   getSyncSnapshot,
   RestoreBlockedError,
+  RestoreNeedsConfirmError,
   restoreFromServer,
   revokeConsent,
   syncNow,
@@ -471,6 +472,122 @@ describe('restoreFromServer', () => {
     await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toBeInstanceOf(RestoreBlockedError);
     expect(fetchMock).not.toHaveBeenCalled();
     expect((await getSettings()).participant?.code).toBe('NEXO-ABCD');
+  });
+
+  it('recusa com outro código local e questionário ainda não enviado, mesmo sem cadastro', async () => {
+    await consent(false);
+    await saveQuestionnaireResponse({
+      id: 'q9',
+      kind: 'inicial',
+      version: getQuestionnaire('inicial').version,
+      answers: {},
+      score: null,
+      submittedAt: NOW,
+    });
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toBeInstanceOf(RestoreBlockedError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('com registros locais de outra conta exige confirmação e não toca em nada', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toBeInstanceOf(
+      RestoreNeedsConfirmError,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await db.habitEntries.count()).toBe(1);
+  });
+
+  it('com outra conta cadastrada, mesmo sem dados, exige confirmação', async () => {
+    await consent();
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toBeInstanceOf(
+      RestoreNeedsConfirmError,
+    );
+  });
+
+  it('hábito criado pela pessoa conta como dado local', async () => {
+    await db.habits.add({ ...habitChange('mine').payload, key: null } as never);
+    await updateSettings({ participant: { code: 'NEXO-ABCD', key: KEY, registered: false } });
+    await expect(restoreFromServer('NEXO-WXYZ', KEY)).rejects.toBeInstanceOf(
+      RestoreNeedsConfirmError,
+    );
+  });
+
+  it('mesma conta com dados locais restaura sem confirmação', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    handler = () => json(200, { changes: [], cursor: '4', hasMore: false });
+    await restoreFromServer('NEXO-ABCD', KEY);
+    expect(await db.habitEntries.count()).toBe(1);
+  });
+
+  it('replaceLocal: apaga a conta atual no servidor, limpa o aparelho e restaura a nova', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    await db.habits.add({ ...habitChange('old').payload } as never);
+    const calls: string[] = [];
+    handler = (url, init) => {
+      const h = init.headers as Record<string, string>;
+      calls.push(`${init.method} ${path(url)} ${h['x-participant-code']}`);
+      if (init.method === 'DELETE') return json(204);
+      if (url.includes('since=999999999999999999')) return emptyPull();
+      return json(200, { changes: [habitChange('r1')], cursor: '8', hasMore: false });
+    };
+    await restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true });
+    expect(calls.some((c) => c === 'DELETE /v1/participants/me NEXO-ABCD')).toBe(true);
+    expect(await db.habitEntries.count()).toBe(0);
+    expect(await outboxCount()).toBe(0);
+    expect((await db.habits.toArray()).map((h) => h.id)).toEqual(['r1']);
+    expect((await getSettings()).participant).toEqual({
+      code: 'NEXO-WXYZ',
+      key: KEY,
+      registered: true,
+    });
+  });
+
+  it('replaceLocal com credenciais novas inválidas não apaga nada', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    handler = () => err(401, 'unauthorized');
+    await expect(restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true })).rejects.toMatchObject(
+      { status: 401 },
+    );
+    expect(await db.habitEntries.count()).toBe(1);
+    expect((await getSettings()).participant?.code).toBe('NEXO-ABCD');
+    expect(fetchMock.mock.calls.some(([, i]) => i.method === 'DELETE')).toBe(false);
+  });
+
+  it('replaceLocal segue em frente se a conta atual já não existe no servidor (401)', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    handler = (url, init) => {
+      if (init.method === 'DELETE') return err(401, 'unauthorized');
+      return json(200, { changes: [], cursor: '2', hasMore: false });
+    };
+    await restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true });
+    expect(await db.habitEntries.count()).toBe(0);
+    expect((await getSettings()).participant?.code).toBe('NEXO-WXYZ');
+  });
+
+  it('replaceLocal falha se a exclusão da conta atual falha e mantém os dados', async () => {
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    httpConfig.retryDelaysMs = [];
+    handler = (url, init) =>
+      init.method === 'DELETE'
+        ? err(503, 'unavailable')
+        : json(200, { changes: [], cursor: '2', hasMore: false });
+    await expect(restoreFromServer('NEXO-WXYZ', KEY, { replaceLocal: true })).rejects.toMatchObject(
+      { status: 503 },
+    );
+    expect(await db.habitEntries.count()).toBe(1);
+  });
+
+  it('aparelho só com hábitos padrão: restaura sem duplicar os hábitos', async () => {
+    await db.habits.add({ ...habitChange('default1').payload, key: 'movement' } as never);
+    handler = () => json(200, { changes: [habitChange('r1')], cursor: '8', hasMore: false });
+    await restoreFromServer('NEXO-WXYZ', KEY);
+    expect((await db.habits.toArray()).map((h) => h.id)).toEqual(['r1']);
   });
 
   it('passa pela mesma trava do syncNow: só começa quando a sincronização termina', async () => {

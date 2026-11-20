@@ -454,7 +454,7 @@ export function startSyncLoop(): () => void {
   };
 }
 
-/** O aparelho já tem outro participante registrado com dados ainda não enviados. */
+/** O aparelho tem outro participante com dados ainda não enviados (fila, questionários, check-ins). */
 export class RestoreBlockedError extends Error {
   constructor() {
     super('Restauração bloqueada: há dados pendentes de outro participante.');
@@ -462,12 +462,75 @@ export class RestoreBlockedError extends Error {
   }
 }
 
-async function restoreLocked(code: string, key: string): Promise<void> {
+/** Restaurar outra conta mexeria em dados locais ou numa conta cadastrada: precisa de confirmação. */
+export class RestoreNeedsConfirmError extends Error {
+  constructor() {
+    super('Restauração exige confirmação: há dados locais ou outra conta cadastrada.');
+    this.name = 'RestoreNeedsConfirmError';
+  }
+}
+
+export interface RestoreOptions {
+  /** Confirmado pela pessoa: apaga a conta atual (servidor) e os dados do aparelho antes. */
+  replaceLocal?: boolean;
+}
+
+async function hasPendingData(): Promise<boolean> {
+  if ((await outboxCount()) > 0) return true;
+  if ((await db.questionnaireResponses.toArray()).some((r) => r.syncedAt === null)) return true;
+  return (await db.checkins.toArray()).some((c) => c.status === 'pending' && c.syncedAt === null);
+}
+
+/** Dados da pessoa no aparelho; só os hábitos padrão, intactos, não contam. */
+async function hasLocalData(): Promise<boolean> {
+  const counts = await Promise.all([
+    db.habitEntries.count(),
+    db.dailyLogs.count(),
+    db.questionnaireResponses.count(),
+    db.checkins.count(),
+  ]);
+  if (counts.some((n) => n > 0)) return true;
+  const habits = await db.habits.toArray();
+  // Os padrão nascem juntos (mesmo updatedAt); editar, criar ou apagar um desfaz isso.
+  return (
+    habits.some((h) => h.key === null || h.deletedAt !== null) ||
+    new Set(habits.map((h) => h.updatedAt)).size > 1
+  );
+}
+
+/** Esvazia as tabelas de dados e o outbox; as configurações ficam. */
+async function wipeLocalData(): Promise<void> {
+  const tables = db.tables.filter((t) => t.name !== 'settings');
+  await db.transaction('rw', tables, () => Promise.all(tables.map((t) => t.clear())));
+}
+
+async function restoreLocked(code: string, key: string, opts: RestoreOptions): Promise<void> {
   const creds: Credentials = { code: normalizeCode(code), key: normalizeRecoveryKey(key) };
   const local = (await getSettings()).participant;
-  // Trocar de participante com fila pendente enviaria os dados de um para a conta do outro.
-  if (local?.registered && local.code !== creds.code && (await outboxCount()) > 0) {
-    throw new RestoreBlockedError();
+  const otherAccount = local === null || local.code !== creds.code;
+  // Trocar de participante com pendências enviaria os dados de um para a conta do outro.
+  if (otherAccount && local && (await hasPendingData())) throw new RestoreBlockedError();
+  const hasData = otherAccount ? await hasLocalData() : false;
+  const replace = otherAccount && (hasData || local?.registered === true);
+  if (replace && !opts.replaceLocal) throw new RestoreNeedsConfirmError();
+  if (replace) {
+    // Confere as credenciais novas antes de apagar qualquer coisa.
+    await apiFetch(`/v1/sync?since=${PROBE_CURSOR}`, {
+      method: 'GET',
+      auth: creds,
+      schema: syncPullResponse,
+    });
+    if (local?.registered) {
+      // 401: a conta atual já não existe no servidor; qualquer outra falha cancela a troca.
+      await deleteRemoteParticipant().catch((e: unknown) => {
+        if (!(e instanceof ApiError && e.status === 401)) throw e;
+      });
+    }
+    await wipeLocalData();
+    await updateSettings({ participant: null, syncCursor: null, consentSyncedVersion: undefined });
+  } else if (otherAccount) {
+    // Só hábitos padrão: os da conta restaurada substituem, em vez de somar.
+    await db.habits.clear();
   }
   await pullAll(
     '0',
@@ -490,8 +553,12 @@ async function restoreLocked(code: string, key: string): Promise<void> {
 }
 
 /** Restaura em outro aparelho: valida as credenciais com um pull e baixa tudo. Lança `ApiError`. */
-export function restoreFromServer(code: string, key: string): Promise<void> {
-  return withLock(() => restoreLocked(code, key));
+export function restoreFromServer(
+  code: string,
+  key: string,
+  opts: RestoreOptions = {},
+): Promise<void> {
+  return withLock(() => restoreLocked(code, key, opts));
 }
 
 /**

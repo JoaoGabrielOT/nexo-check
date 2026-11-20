@@ -69,6 +69,49 @@ describe('SyncSection', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('restaurar com dados locais pede escolha explícita no diálogo do app e só então substitui', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    renderSection();
+    await user.click(await screen.findByRole('button', { name: 'Restaurar em outro aparelho' }));
+    await user.type(await screen.findByLabelText('Código de participante'), 'nexo-wxyz');
+    await user.type(screen.getByLabelText('Chave de recuperação'), KEY);
+    await user.click(screen.getByRole('button', { name: 'Restaurar' }));
+
+    expect(await screen.findByText('Substituir os dados deste aparelho?')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await db.habitEntries.count()).toBe(1);
+
+    fetchMock.mockResolvedValueOnce(json(200, { changes: [], cursor: '1', hasMore: false })); // sondagem
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 })); // apaga a conta atual
+    fetchMock.mockResolvedValueOnce(json(200, { changes: [], cursor: '3', hasMore: false }));
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Apagar a conta atual (no servidor, se houver) e os dados deste aparelho, depois restaurar',
+      }),
+    );
+    await waitFor(async () => expect((await getSettings()).participant?.code).toBe('NEXO-WXYZ'));
+    expect(await db.habitEntries.count()).toBe(0);
+    expect(confirmSpy).not.toHaveBeenCalled();
+  });
+
+  it('restaurar com dados locais e Cancelar não muda nada', async () => {
+    const user = userEvent.setup();
+    await consent();
+    await db.habitEntries.add({ id: 'e1' } as never);
+    renderSection();
+    await user.click(await screen.findByRole('button', { name: 'Restaurar em outro aparelho' }));
+    await user.type(await screen.findByLabelText('Código de participante'), 'nexo-wxyz');
+    await user.type(screen.getByLabelText('Chave de recuperação'), KEY);
+    await user.click(screen.getByRole('button', { name: 'Restaurar' }));
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await db.habitEntries.count()).toBe(1);
+    expect((await getSettings()).participant?.code).toBe('NEXO-ABCD');
+  });
+
   it('restaurar mostra erro com credenciais incorretas e funciona com as corretas', async () => {
     const user = userEvent.setup();
     renderSection();
