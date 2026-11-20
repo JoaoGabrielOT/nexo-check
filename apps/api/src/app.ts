@@ -65,6 +65,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(helmet);
   await app.register(cors, {
     origin: (origin, cb) => cb(null, origin === undefined || origins.has(origin)),
+    // O padrão do @fastify/cors (v10+) é só GET,HEAD,POST: sem isto o navegador bloqueia
+    // o PATCH do consentimento e o DELETE de apagar dados (LGPD) e de sessões no admin.
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE'],
     // O painel admin lê o nome do CSV neste cabeçalho (origem diferente da API).
     exposedHeaders: ['content-disposition'],
   });

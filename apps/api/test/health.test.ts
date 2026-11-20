@@ -44,6 +44,22 @@ describe('GET /health', () => {
     }
   });
 
+  it('libera no preflight os métodos que o app usa (PATCH e DELETE)', async () => {
+    for (const method of ['PATCH', 'DELETE']) {
+      const res = await app.inject({
+        method: 'OPTIONS',
+        url: '/v1/participants/me',
+        headers: {
+          origin: 'https://nexo.example',
+          'access-control-request-method': method,
+          'access-control-request-headers': 'authorization',
+        },
+      });
+      expect(res.statusCode).toBe(204);
+      expect(String(res.headers['access-control-allow-methods'])).toContain(method);
+    }
+  });
+
   it('devolve erro padronizado para rota inexistente', async () => {
     const res = await app.inject({ method: 'GET', url: '/nao-existe' });
     expect(res.statusCode).toBe(404);
