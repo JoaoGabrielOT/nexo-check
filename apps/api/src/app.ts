@@ -57,7 +57,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   // Diagnóstico para escolher CLIENT_IP_HEADER em produção: só presença e contagem, nunca valores.
   let ipHeadersLogged = false;
   app.addHook('onRequest', async (req) => {
-    if (ipHeadersLogged) return;
+    if (ipHeadersLogged || req.url.split('?')[0] === '/health') return;
     ipHeadersLogged = true;
     const xff = req.headers['x-forwarded-for'];
     const xffValue = Array.isArray(xff) ? xff.join(',') : xff;

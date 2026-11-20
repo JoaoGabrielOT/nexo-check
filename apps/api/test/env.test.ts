@@ -47,6 +47,18 @@ describe('parseEnv', () => {
     expect(parseEnv({ ...base, NODE_ENV: 'development' }).CORS_ORIGINS).toEqual([]);
   });
 
+  it('CLIENT_IP_HEADER aceita só cabeçalhos que o proxy sobrescreve', () => {
+    for (const h of ['cf-connecting-ip', 'True-Client-IP', ' x-real-ip ']) {
+      expect(parseEnv({ ...base, CLIENT_IP_HEADER: h }).CLIENT_IP_HEADER).toBe(
+        h.trim().toLowerCase(),
+      );
+    }
+    expect(parseEnv({ ...base, CLIENT_IP_HEADER: '' }).CLIENT_IP_HEADER).toBeUndefined();
+    for (const h of ['x-forwarded-for', 'user-agent', 'x-custom']) {
+      expect(() => parseEnv({ ...base, CLIENT_IP_HEADER: h })).toThrow(/CLIENT_IP_HEADER/);
+    }
+  });
+
   it('rejeita ADMIN_PASSWORD ausente', () => {
     const rest: Record<string, string | undefined> = { ...base, ADMIN_PASSWORD: undefined };
     expect(() => parseEnv(rest)).toThrow(/ADMIN_PASSWORD/);

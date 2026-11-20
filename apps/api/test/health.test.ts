@@ -144,6 +144,8 @@ describe('rate limit e CORS normalizado', () => {
       'cf-connecting-ip': '198.51.100.77',
       'x-forwarded-for': '203.0.113.5, 10.1.1.1',
     };
+    // O health check do Render não passa pelo proxy: não serve de amostra.
+    await app.inject({ method: 'GET', url: '/health' });
     await app.inject({ method: 'GET', url: '/nada', headers });
     await app.inject({ method: 'GET', url: '/nada', headers });
     await app.close();
