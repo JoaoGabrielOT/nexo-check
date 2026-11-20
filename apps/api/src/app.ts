@@ -55,9 +55,12 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   const clientIpHeader = env.CLIENT_IP_HEADER;
 
   // Diagnóstico para escolher CLIENT_IP_HEADER em produção: só presença e contagem, nunca valores.
+  // O health check e a sondagem de boot do Render (HEAD / via loopback) não passam pelo proxy.
   let ipHeadersLogged = false;
+  const loopback = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
   app.addHook('onRequest', async (req) => {
     if (ipHeadersLogged || req.url.split('?')[0] === '/health') return;
+    if (loopback.has(req.socket.remoteAddress ?? '')) return;
     ipHeadersLogged = true;
     const xff = req.headers['x-forwarded-for'];
     const xffValue = Array.isArray(xff) ? xff.join(',') : xff;
