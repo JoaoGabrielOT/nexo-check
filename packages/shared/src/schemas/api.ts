@@ -1,10 +1,9 @@
 import { z } from 'zod';
 import { isParticipantCode, isRecoveryKey, normalizeCode, normalizeRecoveryKey } from '../codes';
 import { syncChangeSchema } from './entities';
+import { dateKey, iso } from './primitives';
 import { answers } from './questionnaire';
 
-const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const iso = z.iso.datetime();
 const workshop = z.union([z.literal(1), z.literal(2)]);
 const sessionCode = z
   .string()

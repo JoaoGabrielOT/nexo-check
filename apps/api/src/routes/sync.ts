@@ -11,7 +11,7 @@ import type { PrismaClient } from '../db';
 import { requireParticipant } from '../plugins/participant-auth';
 
 const PULL_LIMIT = 1000;
-const BODY_LIMIT = 2 * 1024 * 1024;
+const BODY_LIMIT = 512 * 1024;
 
 // Derivado de `syncChangeSchema`: todas as opções são mantidas (uma entidade nova entra sozinha,
 // com o schema do shared) e só a do `dailyLog`, escolhida pelo literal, troca o payload por

@@ -4,7 +4,12 @@ import {
   sessionCreate,
   syncPushRequest,
 } from '../src/schemas/api';
-import { dailyLogSchema, habitEntrySchema, syncChangeSchema } from '../src/schemas/entities';
+import {
+  dailyLogSchema,
+  habitEntrySchema,
+  habitSchema,
+  syncChangeSchema,
+} from '../src/schemas/entities';
 
 const T = '2026-03-01T10:00:00.000Z';
 const meta = { id: 'x', updatedAt: T, deletedAt: null };
@@ -23,6 +28,48 @@ const change = (n: number) => ({
   payload: entry,
   updatedAt: T,
   deletedAt: null,
+});
+
+const habit = {
+  ...meta,
+  key: null,
+  name: 'Leitura',
+  description: '',
+  type: 'minutes' as const,
+  target: 15,
+  targetMax: null,
+  active: true,
+  order: 0,
+  progressive: null,
+};
+
+describe('limites de tamanho e datas', () => {
+  test('habit: name até 80 e description até 200', () => {
+    expect(habitSchema.safeParse({ ...habit, name: 'a'.repeat(80) }).success).toBe(true);
+    expect(habitSchema.safeParse({ ...habit, name: 'a'.repeat(81) }).success).toBe(false);
+    expect(habitSchema.safeParse({ ...habit, description: 'a'.repeat(200) }).success).toBe(true);
+    expect(habitSchema.safeParse({ ...habit, description: 'a'.repeat(201) }).success).toBe(false);
+  });
+  test('habit: metas negativas ou infinitas são rejeitadas', () => {
+    expect(habitSchema.safeParse({ ...habit, target: -1 }).success).toBe(false);
+    expect(habitSchema.safeParse({ ...habit, targetMax: -1 }).success).toBe(false);
+    expect(habitSchema.safeParse({ ...habit, target: Infinity }).success).toBe(false);
+  });
+  test('entry: blocks até 48 e números não negativos', () => {
+    expect(habitEntrySchema.safeParse({ ...entry, blocks: Array(48).fill(5) }).success).toBe(true);
+    expect(habitEntrySchema.safeParse({ ...entry, blocks: Array(49).fill(5) }).success).toBe(false);
+    expect(habitEntrySchema.safeParse({ ...entry, blocks: [-1] }).success).toBe(false);
+    expect(habitEntrySchema.safeParse({ ...entry, value: -1 }).success).toBe(false);
+    expect(habitEntrySchema.safeParse({ ...entry, targetSnapshot: -1 }).success).toBe(false);
+  });
+  test('dateKey rejeita datas que não existem', () => {
+    expect(habitEntrySchema.safeParse({ ...entry, date: '2026-02-30' }).success).toBe(false);
+    expect(habitEntrySchema.safeParse({ ...entry, date: '2026-13-01' }).success).toBe(false);
+    expect(habitEntrySchema.safeParse({ ...entry, date: '2028-02-29' }).success).toBe(true);
+    expect(
+      sessionCreate.safeParse({ workshop: 1, date: '2026-02-30', location: 'x' }).success,
+    ).toBe(false);
+  });
 });
 
 describe('schemas', () => {

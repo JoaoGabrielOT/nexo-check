@@ -1,7 +1,6 @@
 import { z } from 'zod';
+import { dateKey, iso } from './primitives';
 
-const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const iso = z.iso.datetime();
 const scale = z.number().int().min(1).max(5);
 
 const syncMeta = {
@@ -15,14 +14,14 @@ export const habitSchema = z.object({
   key: z
     .enum(['movement', 'active_breaks', 'mobility', 'breathing', 'sleep', 'hydration'])
     .nullable(),
-  name: z.string(),
-  description: z.string(),
+  name: z.string().max(80),
+  description: z.string().max(200),
   type: z.enum(['boolean', 'counter', 'minutes', 'range_hours']),
-  target: z.number(),
-  targetMax: z.number().nullable(),
+  target: z.number().nonnegative(),
+  targetMax: z.number().nonnegative().nullable(),
   active: z.boolean(),
   order: z.number().int(),
-  progressive: z.object({ enabled: z.boolean(), ceiling: z.number() }).nullable(),
+  progressive: z.object({ enabled: z.boolean(), ceiling: z.number().nonnegative() }).nullable(),
 });
 
 export const habitEntrySchema = z
@@ -30,10 +29,10 @@ export const habitEntrySchema = z
     ...syncMeta,
     habitId: z.string().min(1),
     date: dateKey,
-    value: z.number(),
-    blocks: z.array(z.number()),
-    targetSnapshot: z.number(),
-    targetMaxSnapshot: z.number().nullable(),
+    value: z.number().nonnegative(),
+    blocks: z.array(z.number().nonnegative()).max(48),
+    targetSnapshot: z.number().nonnegative(),
+    targetMaxSnapshot: z.number().nonnegative().nullable(),
   })
   .refine((e) => e.targetMaxSnapshot === null || e.targetMaxSnapshot >= e.targetSnapshot, {
     message: 'targetMaxSnapshot must be >= targetSnapshot',

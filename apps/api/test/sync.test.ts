@@ -216,6 +216,16 @@ describe('sincronização', () => {
     expect(res.json().applied).toBe(500);
   });
 
+  it('corpo acima de 512 KB é recusado com 413', async () => {
+    const big = habit('h1');
+    (big.payload as { name: string }).name = 'x'.repeat(600 * 1024);
+    expect((await push([big])).statusCode).toBe(413);
+  });
+
+  it('rejeita nome de hábito acima de 80 caracteres', async () => {
+    expect((await push([habit('h1', T1, 'x'.repeat(81))])).statusCode).toBe(400);
+  });
+
   it('participante A não vê mudanças do participante B', async () => {
     await push([habit('h1')], headersB);
     const a = (await pull('0', headersA)).json();
