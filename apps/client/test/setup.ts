@@ -2,11 +2,24 @@ import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
-import '../src/i18n';
+import i18n from '../src/i18n';
+
+// Chave de tradução ausente aparece crua na tela (ex.: "project.next.inicialTitle"):
+// qualquer teste que renderize uma chave inexistente falha.
+const missingKeys = new Set<string>();
+i18n.options.saveMissing = true;
+i18n.on('missingKey', (_lngs: readonly string[], _ns: string, key: string) => {
+  missingKeys.add(key);
+});
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  if (missingKeys.size > 0) {
+    const keys = [...missingKeys].join(', ');
+    missingKeys.clear();
+    throw new Error(`Chaves de tradução ausentes: ${keys}`);
+  }
 });
 
 // jsdom não implementa matchMedia: stub controlável pelos testes.

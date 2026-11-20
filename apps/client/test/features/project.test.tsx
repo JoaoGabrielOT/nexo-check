@@ -199,6 +199,10 @@ describe('Projeto', () => {
     renderAt('/projeto');
     expect(screen.getByRole('heading', { level: 1, name: 'Projeto' })).toBeVisible();
     const hero = await screen.findByRole('region', { name: 'Próximo passo' });
+    expect(
+      within(hero).getByRole('heading', { name: 'Comece pelo questionário inicial' }),
+    ).toBeVisible();
+    expect(within(hero).getByText(/serve de ponto de partida/)).toBeVisible();
     expect(within(hero).getByRole('link', { name: /Responder/ })).toHaveAttribute(
       'href',
       '/projeto/questionario/inicial',
