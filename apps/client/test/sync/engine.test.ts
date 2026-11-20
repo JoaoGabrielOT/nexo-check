@@ -4,6 +4,7 @@ import { resetDbForTests } from '../../src/db/db';
 import {
   addCheckin,
   db,
+  backfillHistory,
   getSettings,
   outboxCount,
   saveQuestionnaireResponse,
@@ -760,6 +761,17 @@ describe('reenvio do histórico (backfill)', () => {
     };
     return seen;
   }
+
+  it('consentimento revogado durante o backfill: não enfileira nada e mantém o flag', async () => {
+    await consent();
+    await seedHistory();
+    await updateSettings({ consent: null, backfillPending: true, syncCursor: '50' });
+    await backfillHistory();
+    expect(await outboxCount()).toBe(0);
+    const s = await getSettings();
+    expect(s.backfillPending).toBe(true);
+    expect(s.syncCursor).toBe('50');
+  });
 
   it('reconsentir depois de revogar reenvia tudo e zera o cursor', async () => {
     await consent();

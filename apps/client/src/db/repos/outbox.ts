@@ -58,6 +58,10 @@ export async function backfillHistory(): Promise<void> {
       db.checkins,
     ],
     async () => {
+      // Reconfere o consentimento dentro da transação: uma revogação que commitou no meio da
+      // execução não pode ser desfeita (flag limpo) nem gerar fila sem consentimento.
+      const consent = (await db.settings.get('app'))?.value.consent;
+      if (!consent?.granted || consent.version < CONSENT_VERSION) return;
       await db.outbox.clear();
       for (const h of await db.habits.toArray()) await enqueueIfConsented('habit', h);
       for (const e of await db.habitEntries.toArray()) await enqueueIfConsented('habitEntry', e);
