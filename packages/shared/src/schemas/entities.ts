@@ -30,7 +30,7 @@ export const habitEntrySchema = z
     habitId: z.string().min(1),
     date: dateKey,
     value: z.number().nonnegative(),
-    blocks: z.array(z.number().nonnegative()).max(48),
+    blocks: z.array(z.number().nonnegative()).max(200),
     targetSnapshot: z.number().nonnegative(),
     targetMaxSnapshot: z.number().nonnegative().nullable(),
   })

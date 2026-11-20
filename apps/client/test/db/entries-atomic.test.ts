@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- índices conhecidos nos fixtures */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createDefaultHabits } from '@nexo/shared';
+import { createDefaultHabits, habitEntrySchema } from '@nexo/shared';
 import { resetDbForTests } from '../../src/db/db';
 import { adjustEntry, appendBlock, getEntriesForDate, removeBlock } from '../../src/db';
 
@@ -26,6 +26,16 @@ describe('mutações atômicas de registro', () => {
     const h = byKey('hydration');
     await Promise.all(Array.from({ length: 6 }, () => adjustEntry(h, DATE, 1)));
     expect((await only()).value).toBe(6);
+  });
+
+  it('mais de 48 toques em +5 min: no máximo 48 blocos, total certo e dentro do schema', async () => {
+    const h = byKey('movement');
+    for (let i = 0; i < 55; i++) await appendBlock(h, DATE, 5);
+    const e = await only();
+    expect(e.blocks).toHaveLength(48);
+    expect(e.value).toBe(55 * 5);
+    expect(e.blocks.reduce((a, b) => a + b, 0)).toBe(55 * 5);
+    expect(habitEntrySchema.safeParse(e).success).toBe(true);
   });
 
   it('contador nunca fica abaixo de 0', async () => {

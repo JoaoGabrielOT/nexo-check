@@ -55,9 +55,11 @@ describe('limites de tamanho e datas', () => {
     expect(habitSchema.safeParse({ ...habit, targetMax: -1 }).success).toBe(false);
     expect(habitSchema.safeParse({ ...habit, target: Infinity }).success).toBe(false);
   });
-  test('entry: blocks até 48 e números não negativos', () => {
-    expect(habitEntrySchema.safeParse({ ...entry, blocks: Array(48).fill(5) }).success).toBe(true);
-    expect(habitEntrySchema.safeParse({ ...entry, blocks: Array(49).fill(5) }).success).toBe(false);
+  test('entry: blocks até 200 e números não negativos', () => {
+    expect(habitEntrySchema.safeParse({ ...entry, blocks: Array(200).fill(5) }).success).toBe(true);
+    expect(habitEntrySchema.safeParse({ ...entry, blocks: Array(201).fill(5) }).success).toBe(
+      false,
+    );
     expect(habitEntrySchema.safeParse({ ...entry, blocks: [-1] }).success).toBe(false);
     expect(habitEntrySchema.safeParse({ ...entry, value: -1 }).success).toBe(false);
     expect(habitEntrySchema.safeParse({ ...entry, targetSnapshot: -1 }).success).toBe(false);

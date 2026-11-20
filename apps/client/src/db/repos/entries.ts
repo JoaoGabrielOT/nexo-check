@@ -51,9 +51,16 @@ export function adjustEntry(
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
+/** Teto de blocos por dia (o servidor aceita até 200; o client fica bem abaixo). */
+const MAX_BLOCKS = 48;
+
 export function appendBlock(habit: Habit, date: string, minutes: number): Promise<void> {
   return writeEntry(habit, date, (cur) => {
-    const blocks = [...(cur?.blocks ?? []), minutes];
+    const blocks = [...(cur?.blocks ?? [])];
+    // No teto, soma no último bloco: o total de minutos continua certo e o dia segue registrável.
+    if (blocks.length >= MAX_BLOCKS)
+      blocks[MAX_BLOCKS - 1] = (blocks[MAX_BLOCKS - 1] ?? 0) + minutes;
+    else blocks.push(minutes);
     return { value: sum(blocks), blocks };
   });
 }
