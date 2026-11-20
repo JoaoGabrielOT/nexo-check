@@ -102,7 +102,7 @@ Ordem sugerida: Neon, Render, Vercel e, por fim, ajustar o CORS no Render.
 
 1. Em **New > Blueprint**, aponte para este repositório. O `render.yaml` cria o serviço `nexo-check-api` (plano gratuito, região virginia).
 2. Preencha no painel as variáveis com `sync: false`: `DATABASE_URL`, `DIRECT_URL`, `ADMIN_PASSWORD`, `CORS_ORIGINS`, `PUBLIC_WEB_URL`. Opcional: `CLIENT_IP_HEADER` (veja a nota depois da tabela de variáveis). O `ADMIN_JWT_SECRET` é gerado pelo Render.
-3. As migrações rodam no `startCommand` (`prisma migrate deploy`), porque o plano gratuito não tem pre-deploy.
+3. As migrações rodam no `startCommand` (`prisma migrate deploy`), porque o plano gratuito não tem pre-deploy. Isso significa que o `migrate deploy` roda a cada cold start (a cada vez que o serviço acorda); é rápido quando não há migração pendente, mas soma alguns segundos ao tempo de subida.
 4. O health check é `/health`.
 
 > O plano gratuito hiberna após um período sem uso: a primeira requisição depois disso pode levar cerca de um minuto (cold start). O client segue funcionando offline nesse intervalo.
