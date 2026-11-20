@@ -57,6 +57,7 @@ describe('GET /health', () => {
       });
       expect(res.statusCode).toBe(204);
       expect(String(res.headers['access-control-allow-methods'])).toContain(method);
+      expect(res.headers['access-control-max-age']).toBe('7200');
     }
   });
 

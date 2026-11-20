@@ -90,6 +90,8 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE'],
     // O painel admin lê o nome do CSV neste cabeçalho (origem diferente da API).
     exposedHeaders: ['content-disposition'],
+    // O navegador reaproveita o preflight por 2 h (padrão do Chrome: 5 s sem isto).
+    maxAge: 7200,
   });
   await app.register(rateLimit, {
     global: true,

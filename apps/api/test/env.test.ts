@@ -36,6 +36,17 @@ describe('parseEnv', () => {
     expect(env.CORS_ORIGINS).toEqual(['https://a.example', 'https://b.example']);
   });
 
+  it('em produção exige CORS_ORIGINS não vazio', () => {
+    expect(() => parseEnv({ ...base, NODE_ENV: 'production' })).toThrow(/CORS_ORIGINS/);
+    expect(() => parseEnv({ ...base, NODE_ENV: 'production', CORS_ORIGINS: ' , ' })).toThrow(
+      /CORS_ORIGINS/,
+    );
+    expect(
+      parseEnv({ ...base, NODE_ENV: 'production', CORS_ORIGINS: 'https://a.example' }).CORS_ORIGINS,
+    ).toEqual(['https://a.example']);
+    expect(parseEnv({ ...base, NODE_ENV: 'development' }).CORS_ORIGINS).toEqual([]);
+  });
+
   it('rejeita ADMIN_PASSWORD ausente', () => {
     const rest: Record<string, string | undefined> = { ...base, ADMIN_PASSWORD: undefined };
     expect(() => parseEnv(rest)).toThrow(/ADMIN_PASSWORD/);
