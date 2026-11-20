@@ -2,7 +2,11 @@ import { CONSENT_VERSION, registerRequest } from '@nexo/shared';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { PrismaClient } from '../db';
-import { hashKey, requireParticipant } from '../plugins/participant-auth';
+import {
+  clearParticipantAuthCache,
+  hashKey,
+  requireParticipant,
+} from '../plugins/participant-auth';
 
 function participantId(req: FastifyRequest): string {
   if (!req.participant) throw new Error('requireParticipant não executou');
@@ -51,7 +55,9 @@ export async function participantRoutes(
 
   app.delete('/participants/me', { preHandler: auth }, async (req, reply) => {
     // deleteMany: uma segunda requisição concorrente não deve virar 500 (idempotente: 204).
-    await prisma.participant.deleteMany({ where: { id: participantId(req) } });
+    const id = participantId(req);
+    await prisma.participant.deleteMany({ where: { id } });
+    clearParticipantAuthCache(prisma, id);
     return reply.status(204).send();
   });
 

@@ -1,6 +1,6 @@
 import { generateRecoveryKey } from '@nexo/shared';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app';
 import type { PrismaClient } from '../src/db';
 import { requireParticipant } from '../src/plugins/participant-auth';
@@ -99,6 +99,50 @@ describe('participantes', () => {
       });
       expect(me.statusCode).toBe(200);
     }
+  });
+
+  describe('cache de autenticação', () => {
+    const me = (key = KEY) =>
+      app.inject({ method: 'GET', url: '/v1/_me', headers: authHeaders(CODE, key) });
+
+    it('a segunda requisição com as mesmas credenciais não consulta o banco', async () => {
+      await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+      const spy = vi.spyOn(prisma.participant, 'findUnique');
+      expect((await me()).statusCode).toBe(200);
+      expect((await me()).statusCode).toBe(200);
+      expect(spy).toHaveBeenCalledTimes(1);
+      spy.mockRestore();
+    });
+
+    it('chave errada nunca entra no cache nem é aceita depois de uma certa', async () => {
+      await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+      expect((await me()).statusCode).toBe(200);
+      expect((await me(generateRecoveryKey())).statusCode).toBe(401);
+    });
+
+    it('DELETE /me invalida o cache: a mesma credencial passa a dar 401', async () => {
+      await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+      expect((await me()).statusCode).toBe(200);
+      const del = await app.inject({
+        method: 'DELETE',
+        url: '/v1/participants/me',
+        headers: authHeaders(),
+      });
+      expect(del.statusCode).toBe(204);
+      expect((await me()).statusCode).toBe(401);
+    });
+
+    it('expira depois de cerca de 5 minutos', async () => {
+      await register(app, { code: CODE, key: KEY, consentVersion: 1 });
+      const real = Date.now();
+      expect((await me()).statusCode).toBe(200);
+      const spy = vi.spyOn(prisma.participant, 'findUnique');
+      const clock = vi.spyOn(Date, 'now').mockReturnValue(real + 5 * 60 * 1000 + 1000);
+      expect((await me()).statusCode).toBe(200);
+      expect(spy).toHaveBeenCalledTimes(1);
+      clock.mockRestore();
+      spy.mockRestore();
+    });
   });
 
   it('hash armazenado malformado dá 401, não 500', async () => {
