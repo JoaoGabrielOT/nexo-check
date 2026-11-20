@@ -249,6 +249,7 @@ export function HabitsEditor() {
             onChange={(e) => setName(e.target.value)}
           />
         </label>
+        <p className="-mt-2 text-xs font-semibold text-muted">{t('settings.habits.nameHint')}</p>
         <div className="flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-1.5 text-sm font-bold">
             {t('settings.habits.type')}

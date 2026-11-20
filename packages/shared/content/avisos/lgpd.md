@@ -17,11 +17,12 @@ Este app faz parte de um projeto acadêmico (NEXO em Movimento). Você pode usá
 - seus hábitos marcados no dia;
 - seus registros de humor, energia, estresse e sono (notas de 1 a 5);
 - respostas fechadas dos questionários;
-- a presença nas oficinas.
+- a presença nas oficinas;
+- os nomes dos hábitos que você criar. Evite colocar dados pessoais nesses nomes.
 
 **O que nunca é enviado:**
 
 - nome, e-mail ou telefone;
-- observações do dia e qualquer texto livre que você escrever.
+- observações do dia e respostas abertas dos questionários (texto que você escrever nesses campos).
 
 Você é identificado apenas por um código de participante gerado no aparelho. Pode mudar de ideia nas Configurações, parar de enviar dados e pedir a exclusão do que já foi enviado.

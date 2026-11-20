@@ -81,6 +81,7 @@ describe('editor de hábitos', () => {
   it('nome do hábito novo é limitado a 40 caracteres', async () => {
     renderConfig();
     expect(await screen.findByLabelText('Nome do hábito')).toHaveAttribute('maxlength', '40');
+    expect(screen.getByText(/o nome é enviado. Evite dados pessoais/)).toBeInTheDocument();
   });
 
   it('só hábitos próprios têm botão de excluir; excluir pede confirmação', async () => {

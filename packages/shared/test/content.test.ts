@@ -135,6 +135,14 @@ describe('conteúdo Markdown', () => {
     expect(getMarkdown('avisos/avisos.md').body).toContain('R$ 0');
   });
 
+  it('lgpd: declara que os nomes dos hábitos criados são enviados e que anotações nunca são', () => {
+    const { body } = getMarkdown('avisos/lgpd.md');
+    const [enviado = '', nunca = ''] = body.split('**O que nunca é enviado:**');
+    expect(enviado).toContain('nomes dos hábitos que você criar');
+    expect(nunca).toContain('observações do dia');
+    expect(nunca).not.toContain('qualquer texto livre');
+  });
+
   it('getMarkdown falha para caminho inexistente', () => {
     expect(() => getMarkdown('aprender/nao-existe.md')).toThrow();
   });

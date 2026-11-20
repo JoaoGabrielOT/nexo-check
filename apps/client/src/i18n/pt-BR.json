@@ -269,6 +269,7 @@
       "addTitle": "Novo hábito",
       "name": "Nome do hábito",
       "namePlaceholder": "Ex.: Leitura",
+      "nameHint": "Se você participa da pesquisa, o nome é enviado. Evite dados pessoais.",
       "type": "Tipo",
       "types": {
         "boolean": "Sim ou não",
