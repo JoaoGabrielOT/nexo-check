@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { getMarkdown } from '@nexo/shared';
 import { Button, Tile, toast } from '@nexo/ui';
 import { MarkdownView } from '../../components/MarkdownView';
+import { checkForUpdates } from '../../platform/updater/store';
 
 const REPO_URL = 'https://github.com/JoaoGabrielOT/nexo-check';
 
@@ -9,6 +10,11 @@ export function AboutSection() {
   const { t } = useTranslation();
 
   const checkUpdates = async () => {
+    const native = await checkForUpdates();
+    if (native === 'none') return void toast(t('update.upToDate'));
+    if (native === 'error') return void toast(t('errors.generic'));
+    // Nativo com versão nova (o diálogo abre sozinho) ou consulta em andamento: nada a avisar.
+    if (native !== 'unsupported') return;
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
       if (!registration) {

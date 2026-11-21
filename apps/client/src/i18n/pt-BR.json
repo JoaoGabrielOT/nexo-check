@@ -25,6 +25,20 @@
     "onboarding": "Boas-vindas",
     "admin": "Painel do grupo"
   },
+  "update": {
+    "title": "Nova versão {{version}}",
+    "notes": "O que mudou",
+    "now": "Atualizar agora",
+    "later": "Depois",
+    "installNow": "Instalar agora",
+    "downloading": "Baixando… {{percent}}%",
+    "downloadingUnknown": "Baixando…",
+    "progressLabel": "Progresso do download",
+    "needsPermission": "Permita que o NEXO Check instale apps desta fonte e toque em \"Atualizar agora\" de novo.",
+    "ready": "Download concluído. Com o NEXO Check aberto, toque em \"Instalar agora\".",
+    "error": "Não foi possível atualizar agora. Tente de novo mais tarde.",
+    "upToDate": "Você já está na versão mais recente."
+  },
   "errors": {
     "backup": {
       "invalid": "Arquivo de backup inválido. Nenhum dado foi alterado."

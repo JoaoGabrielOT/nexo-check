@@ -15,6 +15,8 @@ import { Toaster, Wallpaper, cn } from '@nexo/ui';
 import { getSettings } from '../db';
 import type { AppSettings } from '../db/schemas';
 import { useReminderScheduling } from '../features/settings/RemindersSection';
+import { UpdateDialog, useUpdateChecks } from '../features/update';
+import { isNative } from '../platform/runtime';
 import { startSyncLoop } from '../sync/engine';
 import { PwaUpdateToast } from './PwaUpdateToast';
 import { SyncStatusPill } from './SyncStatusPill';
@@ -108,6 +110,7 @@ export function Layout() {
   const { pathname } = useLocation();
   const settings = useLiveQuery(getSettings, []);
   useReminderScheduling(settings?.reminders);
+  useUpdateChecks();
   useEffect(() => startSyncLoop(), []);
   const target = settings ? redirectFor(settings, pathname) : null;
   const [confirmed, setConfirmed] = useState<string | null>(null);
@@ -236,7 +239,7 @@ export function Layout() {
         <Outlet />
       </main>
       <Toaster />
-      <PwaUpdateToast />
+      {isNative() ? <UpdateDialog /> : <PwaUpdateToast />}
     </>
   );
 }

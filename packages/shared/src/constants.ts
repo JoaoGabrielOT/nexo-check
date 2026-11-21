@@ -7,6 +7,7 @@ export const CONSENT_VERSION = 1;
 export const SYNC_TIMEOUT_MS = 60_000;
 export const SYNC_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000] as const;
 export const SYNC_INTERVAL_MS = 900_000;
+export const UPDATE_CHECK_INTERVAL_MS = 21_600_000; // 6 h
 export const MAX_CLOCK_SKEW_MS = 300_000;
 export const SESSION_VALID_HOURS_AFTER = 24;
 export const ADMIN_JWT_TTL = '8h' as const;

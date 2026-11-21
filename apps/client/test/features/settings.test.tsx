@@ -19,6 +19,7 @@ import {
 import { ConfigPage } from '../../src/features/settings/ConfigPage';
 import { TodayPage } from '../../src/features/today';
 import * as files from '../../src/platform/files';
+import { setUpdaterAdapterForTests } from '../../src/platform/updater/store';
 import * as ui from '@nexo/ui';
 
 vi.mock('@nexo/ui', async (orig) => {
@@ -341,6 +342,46 @@ describe('tema, sincronização e sobre', () => {
     expect(screen.getByRole('link', { name: 'Repositório no GitHub' })).toHaveAttribute(
       'href',
       'https://github.com/JoaoGabrielOT/nexo-check',
+    );
+  });
+});
+
+describe('Verificar atualizações', () => {
+  beforeEach(() => vi.mocked(ui.toast).mockClear());
+  afterEach(() => setUpdaterAdapterForTests(undefined));
+
+  it('no nativo, sem versão nova, avisa que já está na mais recente', async () => {
+    setUpdaterAdapterForTests({ check: async () => null, install: async () => 'installing' });
+    const user = userEvent.setup();
+    renderConfig();
+    await user.click(await screen.findByRole('button', { name: 'Verificar atualizações' }));
+    await waitFor(() =>
+      expect(ui.toast).toHaveBeenCalledWith('Você já está na versão mais recente.'),
+    );
+  });
+
+  it('no nativo, falha na verificação mostra o erro genérico', async () => {
+    setUpdaterAdapterForTests({
+      check: () => Promise.reject(new Error('offline')),
+      install: async () => 'installing',
+    });
+    const user = userEvent.setup();
+    renderConfig();
+    await user.click(await screen.findByRole('button', { name: 'Verificar atualizações' }));
+    await waitFor(() =>
+      expect(ui.toast).toHaveBeenCalledWith('Não foi possível concluir agora. Tente novamente.'),
+    );
+  });
+
+  it('na web (sem adaptador) segue o caminho do service worker', async () => {
+    setUpdaterAdapterForTests(null);
+    const user = userEvent.setup();
+    renderConfig();
+    await user.click(await screen.findByRole('button', { name: 'Verificar atualizações' }));
+    await waitFor(() =>
+      expect(ui.toast).toHaveBeenCalledWith(
+        'Atualizações automáticas não estão disponíveis neste navegador.',
+      ),
     );
   });
 });

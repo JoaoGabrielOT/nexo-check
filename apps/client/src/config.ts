@@ -6,3 +6,8 @@ export function normalizeApiUrl(url: string | undefined): string {
 
 export const API_URL: string = normalizeApiUrl(import.meta.env.VITE_API_URL);
 export const APP_VERSION: string = __APP_VERSION__;
+
+export const RELEASES_LATEST_API =
+  'https://api.github.com/repos/JoaoGabrielOT/nexo-check/releases/latest';
+export const RELEASE_DOWNLOAD_PREFIX =
+  'https://github.com/JoaoGabrielOT/nexo-check/releases/download/';
