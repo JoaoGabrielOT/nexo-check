@@ -103,6 +103,39 @@ describe('syncVersionInFiles', () => {
   });
 });
 
+describe('syncVersionInFiles: robustez', () => {
+  it('Cargo.toml com authors = [..] antes de version atualiza', () => {
+    const toml =
+      '[package]\nname = "x"\nauthors = ["a", "b"]\nversion = "0.0.0"\n\n[dependencies]\nversion = "9"\n';
+    const out = syncVersionInFiles({ 'Cargo.toml': toml }, '0.2.0');
+    expect(out['Cargo.toml']).toBe(toml.replace('version = "0.0.0"', 'version = "0.2.0"'));
+  });
+
+  it('lança com o nome do arquivo quando não acha a linha de versão', () => {
+    expect(() =>
+      syncVersionInFiles({ 'a/Cargo.toml': '[package]\nname = "x"\n' }, '0.2.0'),
+    ).toThrow(/a\/Cargo\.toml/);
+    expect(() =>
+      syncVersionInFiles({ 'b/package.json': '{\n    "version": "0.0.0"\n}\n' }, '0.2.0'),
+    ).toThrow(/b\/package\.json/);
+    expect(() =>
+      syncVersionInFiles({ 'c/tauri.conf.json': '{\n  "version": "0.0.0"\n}\n' }, '0.2.0'),
+    ).toThrow(/versionCode/);
+  });
+
+  it('runSync --check também lança', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sync-version-'));
+    try {
+      writeFileSync(join(root, 'package.json'), '{\n  "version": "0.2.0"\n}\n');
+      mkdirSync(join(root, 'apps/x'), { recursive: true });
+      writeFileSync(join(root, 'apps/x/package.json'), '{\n    "version": "0.0.0"\n}\n');
+      expect(() => runSync({ root, check: true })).toThrow(/apps\/x\/package\.json/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('runSync', () => {
   let root;
   const write = (rel, content) => {

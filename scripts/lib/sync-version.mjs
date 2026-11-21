@@ -15,19 +15,43 @@ const NATIVE_FILES = [
 const baseName = (path) => path.split(/[\\/]/).pop();
 
 // Os arquivos usam sempre dois espaços (Prettier): o version de topo é o único com esse recuo.
-function syncPackageJson(text, version) {
-  return text.replace(/^( {2}"version"\s*:\s*")[^"]*(")/m, `$1${version}$2`);
+// Se o padrão não casar, falha alto: ignorar em silêncio faria o --check mentir.
+function replaceOrThrow(text, re, replacement, path, what) {
+  if (!re.test(text)) throw new Error(`${path}: não encontrei ${what}`);
+  return text.replace(re, replacement);
 }
 
-function syncTauriConf(text, version) {
-  return syncPackageJson(text, version).replace(
-    /("versionCode"\s*:\s*)\d+/,
-    `$1${androidVersionCode(version)}`,
+function syncPackageJson(text, version, path) {
+  return replaceOrThrow(
+    text,
+    /^( {2}"version"\s*:\s*")[^"]*(")/m,
+    `$1${version}$2`,
+    path,
+    'a linha "version" de topo (recuo de 2 espaços)',
   );
 }
 
-function syncCargoToml(text, version) {
-  return text.replace(/(^\[package\][^[]*?^version\s*=\s*")[^"]*(")/m, `$1${version}$2`);
+function syncTauriConf(text, version, path) {
+  return replaceOrThrow(
+    syncPackageJson(text, version, path),
+    /("versionCode"\s*:\s*)\d+/,
+    `$1${androidVersionCode(version)}`,
+    path,
+    '"versionCode"',
+  );
+}
+
+function syncCargoToml(text, version, path) {
+  const lines = text.split('\n');
+  let inPackage = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\[/.test(lines[i])) inPackage = /^\[package\]\s*$/.test(lines[i]);
+    else if (inPackage && /^version\s*=\s*"/.test(lines[i])) {
+      lines[i] = lines[i].replace(/^(version\s*=\s*")[^"]*(")/, `$1${version}$2`);
+      return lines.join('\n');
+    }
+  }
+  throw new Error(`${path}: não encontrei a linha version em [package]`);
 }
 
 function syncCargoLock(text, version) {
@@ -44,9 +68,9 @@ export function syncVersionInFiles(files, version) {
   for (const [path, text] of Object.entries(files)) {
     const name = baseName(path);
     let next = text;
-    if (name === 'package.json') next = syncPackageJson(text, clean);
-    else if (name === 'tauri.conf.json') next = syncTauriConf(text, clean);
-    else if (name === 'Cargo.toml') next = syncCargoToml(text, clean);
+    if (name === 'package.json') next = syncPackageJson(text, clean, path);
+    else if (name === 'tauri.conf.json') next = syncTauriConf(text, clean, path);
+    else if (name === 'Cargo.toml') next = syncCargoToml(text, clean, path);
     else if (name === 'Cargo.lock') next = syncCargoLock(text, clean);
     if (next !== text) changed[path] = next;
   }
