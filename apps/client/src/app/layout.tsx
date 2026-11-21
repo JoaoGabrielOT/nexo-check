@@ -156,7 +156,7 @@ export function Layout() {
           ref={headerRef}
           data-scrolled={scrolled}
           className={cn(
-            'sticky top-0 z-40 flex items-center justify-between border-b border-transparent px-[6vw] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 motion-safe:transition-colors',
+            'sticky top-0 z-40 flex items-center justify-between border-b border-transparent pr-[max(6vw,env(safe-area-inset-right))] pl-[max(6vw,env(safe-area-inset-left))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 motion-safe:transition-colors',
             scrolled && 'border-border/12 bg-bg',
             withNav &&
               'lg:fixed lg:left-0 lg:w-60 lg:border-transparent lg:bg-transparent lg:pt-6 lg:pr-3 lg:pl-8',
@@ -185,7 +185,7 @@ export function Layout() {
         <nav
           aria-label={t('a11y.mainNav')}
           className={cn(
-            'fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/12 bg-bg px-1 pt-1.5 pb-[env(safe-area-inset-bottom)]',
+            'fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/12 bg-bg pr-[max(0.25rem,env(safe-area-inset-right))] pl-[max(0.25rem,env(safe-area-inset-left))] pt-1.5 pb-[env(safe-area-inset-bottom)]',
             'lg:inset-y-0 lg:right-auto lg:w-60 lg:flex-col lg:justify-start lg:gap-1 lg:border-t-0 lg:border-r lg:border-border/10 lg:bg-surface lg:px-4 lg:pt-24',
           )}
         >
@@ -230,7 +230,7 @@ export function Layout() {
         id="conteudo"
         tabIndex={-1}
         className={cn(
-          'relative z-10 px-[6vw] pt-3 pb-12 outline-none',
+          'relative z-10 pr-[max(6vw,env(safe-area-inset-right))] pl-[max(6vw,env(safe-area-inset-left))] pt-3 pb-12 outline-none',
           withNav &&
             'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pt-12 lg:pr-14 lg:pb-14 lg:pl-[calc(15rem+3rem)] xl:pr-16',
         )}

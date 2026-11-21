@@ -187,6 +187,7 @@ describe('layout', () => {
     renderAt('/');
     const nav = await screen.findByRole('navigation', { name: 'Navegação principal' });
     expect(nav.className).toContain('pb-[env(safe-area-inset-bottom)]');
+    expect(nav.className).toContain('pl-[max(0.25rem,env(safe-area-inset-left))]');
     const active = screen.getByRole('link', { name: 'Hoje' });
     expect(active.querySelector('[data-nav-icon]')).toHaveAttribute('data-active', 'true');
     expect(
