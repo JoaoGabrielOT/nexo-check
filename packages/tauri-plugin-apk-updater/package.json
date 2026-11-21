@@ -1,0 +1,14 @@
+{
+  "name": "@nexo/tauri-plugin-apk-updater",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./guest-js/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.5"
+  }
+}
