@@ -86,18 +86,25 @@ jobs:
           if-no-files-found: warn
   android:
     runs-on: ubuntu-latest
+    # Só checkout, build e artefato: sem escrita (pnpm install e Gradle executam código de terceiros).
+    permissions:
+      contents: read
     outputs:
       present: ${{ steps.gen.outputs.present }}
     steps:
       - uses: actions/checkout@v4
       # gen/android nasce no bootstrap-native (task android-init). Num push em branch
-      # antes disso o job só avisa; em dispatch, tag ou workflow_call a ausência falha.
+      # antes disso o job só avisa; em qualquer outro caso (dispatch, tag, release via
+      # workflow_call com tag) a ausência falha. Num workflow_call o evento é o do chamador,
+      # por isso a tag da release também entra na condição.
       - name: Confere gen/android
         id: gen
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           if [ -d apps/client/src-tauri/gen/android ]; then
             echo present=true >> "$GITHUB_OUTPUT"
-          elif [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF_TYPE" = branch ]; then
+          elif [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF_TYPE" = branch ] && [ -z "$RELEASE_TAG" ]; then
             echo '::warning::gen/android ainda não existe: rode bootstrap-native com task=android-init.'
             echo present=false >> "$GITHUB_OUTPUT"
           else
@@ -152,6 +159,8 @@ jobs:
     needs: android
     if: needs.android.outputs.present == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

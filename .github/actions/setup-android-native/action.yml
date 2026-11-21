@@ -7,7 +7,11 @@ runs:
       with:
         distribution: temurin
         java-version: 17
+    # O padrão da action é "tools platform-tools", mas o pacote "tools" não existe mais no
+    # repositório do SDK e o sdkmanager falha ("Failed to find package 'tools'").
     - uses: android-actions/setup-android@v3
+      with:
+        packages: platform-tools
     - name: NDK
       shell: bash
       run: |
