@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-apk-updater"
+version = "0.0.0"
+description = "Baixa o APK de uma release do GitHub e abre o instalador do Android (NEXO Check)"
+edition = "2021"
+links = "tauri-plugin-apk-updater"
+publish = false
+
+# Minors fixadas como no app (src-tauri/Cargo.toml): acompanham os pacotes @tauri-apps/* do npm.
+[dependencies]
+tauri = "2.12"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2.7", features = ["build"] }

@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+        <!-- Subclasse própria: o app já declara androidx.core.content.FileProvider (o merge
+             do manifesto não aceita dois providers com o mesmo nome). -->
+        <provider
+            android:name="io.github.joaogabrielot.apkupdater.ApkUpdaterFileProvider"
+            android:authorities="${applicationId}.apkupdater.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/apk_updater_paths" />
+        </provider>
+    </application>
+</manifest>

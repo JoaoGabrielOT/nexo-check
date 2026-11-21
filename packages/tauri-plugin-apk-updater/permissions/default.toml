@@ -1,0 +1,8 @@
+"$schema" = "schemas/schema.json"
+[default]
+description = "Permite baixar o APK de uma release e abrir o instalador, com o progresso do download."
+permissions = [
+  "allow-download-and-install",
+  "allow-register-listener",
+  "allow-remove-listener",
+]

@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Permissões só do Android: atualização do APK",
+  "windows": ["main"],
+  "platforms": ["android"],
+  "permissions": ["apk-updater:default"]
+}

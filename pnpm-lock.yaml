@@ -108,6 +108,9 @@ importers:
       '@nexo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@nexo/tauri-plugin-apk-updater':
+        specifier: workspace:*
+        version: link:../../packages/tauri-plugin-apk-updater
       '@nexo/ui':
         specifier: workspace:*
         version: link:../../packages/ui

@@ -65,3 +65,5 @@ jobs:
       # o lock (não há Rust local), e o --locked deixaria o CI vermelho nesse intervalo.
       - name: cargo check
         run: cargo check --manifest-path apps/client/src-tauri/Cargo.toml
+      - name: cargo check (plugin apk-updater)
+        run: cargo check --manifest-path packages/tauri-plugin-apk-updater/Cargo.toml

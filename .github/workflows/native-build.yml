@@ -128,6 +128,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - if: steps.gen.outputs.present == 'true'
         run: pnpm --filter client tauri android build --apk --target aarch64 --target armv7 --target x86_64
+      # Depois do build: é ele que gera o tauri.settings.gradle que inclui o projeto do plugin.
+      - name: JUnit do plugin apk-updater
+        if: steps.gen.outputs.present == 'true'
+        working-directory: apps/client/src-tauri/gen/android
+        run: ./gradlew :tauri-plugin-apk-updater:testReleaseUnitTest --console=plain
       - name: Localiza, assina (se preciso) e renomeia o APK
         if: steps.gen.outputs.present == 'true'
         run: |
