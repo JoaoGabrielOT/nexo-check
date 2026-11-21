@@ -26,7 +26,7 @@ export default tseslint.config(
   },
   { files: ['**/*.tsx'], ...jsxA11y.flatConfigs.recommended },
   {
-    files: ['apps/client/scripts/**/*.mjs'],
-    languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+    files: ['apps/client/scripts/**/*.mjs', 'scripts/**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly', URL: 'readonly' } },
   },
 );

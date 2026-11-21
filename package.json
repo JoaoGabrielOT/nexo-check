@@ -11,7 +11,10 @@
     "build": "turbo run build",
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test && pnpm test:scripts",
+    "test:scripts": "vitest run --config scripts/vitest.config.mjs",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check",
     "test:e2e": "turbo run test:e2e",
     "format": "prettier --write .",
     "prepare": "husky"
