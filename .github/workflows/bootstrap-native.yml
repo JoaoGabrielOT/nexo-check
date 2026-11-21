@@ -64,8 +64,9 @@ jobs:
           else
             cargo generate-lockfile --manifest-path "$m"
           fi
-      - name: Projetos Gradle (nome do módulo do app)
-        run: cd apps/client/src-tauri/gen/android && ./gradlew projects
+      # Sem "./gradlew projects" aqui: o tauri.settings.gradle só nasce no "tauri android build".
+      - name: Arquivos gerados
+        run: find apps/client/src-tauri/gen/android -maxdepth 2 | sort
       - name: Commit
         run: |
           git config user.name 'github-actions[bot]'
