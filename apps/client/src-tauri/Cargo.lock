@@ -2271,6 +2271,7 @@ version = "0.0.0"
 dependencies = [
  "tauri",
  "tauri-build",
+ "tauri-plugin-apk-updater",
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
  "tauri-plugin-notification",
@@ -3829,6 +3830,16 @@ dependencies = [
  "serde_json",
  "tauri-utils",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-plugin-apk-updater"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
