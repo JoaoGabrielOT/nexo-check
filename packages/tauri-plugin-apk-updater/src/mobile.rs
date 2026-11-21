@@ -9,11 +9,15 @@ use crate::models::*;
 #[cfg(target_os = "android")]
 const PLUGIN_IDENTIFIER: &str = "io.github.joaogabrielot.apkupdater";
 
-// Registra a classe Kotlin do plugin.
+// Registra a classe Kotlin do plugin (o plugin só existe no Android; não há alvo iOS).
+#[cfg(not(target_os = "android"))]
+compile_error!("tauri-plugin-apk-updater só suporta Android em alvos mobile");
+
 pub fn init<R: Runtime, C: DeserializeOwned>(
     _app: &AppHandle<R>,
     api: PluginApi<R, C>,
 ) -> crate::Result<ApkUpdater<R>> {
+    #[cfg(target_os = "android")]
     let handle = api.register_android_plugin(PLUGIN_IDENTIFIER, "ApkUpdaterPlugin")?;
     Ok(ApkUpdater(handle))
 }

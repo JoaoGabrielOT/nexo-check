@@ -48,6 +48,13 @@ describe('isAllowedApkUrl', () => {
       isAllowedApkUrl('https://github.com/JoaoGabrielOT/nexo-check/releases/download/../../x.apk'),
     ).toBe(false);
     expect(isAllowedApkUrl('não é url')).toBe(false);
+    expect(isAllowedApkUrl(URL_OK.replace('https://github.com', 'HTTPS://GitHub.COM'))).toBe(true);
+    expect(isAllowedApkUrl(URL_OK.replace('JoaoGabrielOT', 'joaogabrielot'))).toBe(false);
+    expect(
+      isAllowedApkUrl(
+        'https://github.com/JoaoGabrielOT/nexo-check/releases/download/%2e%2e/%2E%2E/x.apk',
+      ),
+    ).toBe(false);
   });
 });
 
@@ -67,6 +74,11 @@ describe('downloadAndInstall', () => {
     await expect(downloadAndInstall({ url: URL_OK, expectedSize: 10 })).resolves.toBe(
       'needs_permission',
     );
+  });
+
+  it('devolve ready quando o app estava em segundo plano', async () => {
+    core.invoke.mockResolvedValue({ status: 'ready' });
+    await expect(downloadAndInstall({ url: URL_OK, expectedSize: 10 })).resolves.toBe('ready');
   });
 
   it('recusa URL fora das releases sem chamar o nativo', async () => {

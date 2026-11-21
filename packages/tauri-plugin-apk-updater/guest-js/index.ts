@@ -1,6 +1,7 @@
 import { addPluginListener, invoke } from '@tauri-apps/api/core';
 
-export type InstallStatus = 'installing' | 'needs_permission';
+// ready: APK baixado e conferido, mas o app estava em segundo plano (aguarda "Instalar agora").
+export type InstallStatus = 'installing' | 'needs_permission' | 'ready';
 
 export interface DownloadRequest {
   url: string;

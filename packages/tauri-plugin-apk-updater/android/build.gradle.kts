@@ -29,6 +29,7 @@ kotlin {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.appcompat:appcompat:1.6.0")
     testImplementation("junit:junit:4.13.2")
     implementation(project(":tauri-android"))
 }

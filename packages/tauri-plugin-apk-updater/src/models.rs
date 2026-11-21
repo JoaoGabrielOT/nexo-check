@@ -12,6 +12,8 @@ pub struct DownloadRequest {
 pub enum InstallStatus {
     Installing,
     NeedsPermission,
+    // APK baixado e conferido, mas o app estava em segundo plano: aguarda "Instalar agora".
+    Ready,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
