@@ -20,7 +20,7 @@ const INFO = { version: '0.2.0', notes: '- x' };
 
 function adapter(over: Partial<UpdaterAdapter> = {}): UpdaterAdapter {
   return {
-    check: vi.fn().mockResolvedValue(INFO),
+    check: vi.fn().mockResolvedValue({ info: INFO }),
     install: vi.fn().mockResolvedValue('installing'),
     ...over,
   };
@@ -90,9 +90,9 @@ describe('checkForUpdates', () => {
     vi.useFakeTimers();
     const check = vi.fn().mockRejectedValue(new UpdateCheckError(403));
     setUpdaterAdapterForTests(adapter({ check }));
-    expect(await checkForUpdates()).toBe('error');
-    expect(await checkForUpdates()).toBe('error');
-    expect(await checkForUpdates()).toBe('error');
+    expect(await checkForUpdates()).toBe('rate_limited');
+    expect(await checkForUpdates()).toBe('rate_limited');
+    expect(await checkForUpdates()).toBe('rate_limited');
     expect(check).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(UPDATE_CHECK_INTERVAL_MS + 1);
     await checkForUpdates();
@@ -122,7 +122,7 @@ describe('installUpdate', () => {
     let release!: (v: 'installing') => void;
     setUpdaterAdapterForTests(
       adapter({
-        install: vi.fn<UpdaterAdapter['install']>((onProgress) => {
+        install: vi.fn<UpdaterAdapter['install']>((_c, onProgress) => {
           report = onProgress;
           return new Promise((r) => (release = r));
         }),
@@ -189,5 +189,90 @@ describe('installUpdate', () => {
     await checkForUpdates();
     dismissUpdate();
     expect(state()).toEqual({ status: 'idle' });
+  });
+});
+
+describe('corridas e estados', () => {
+  const CAND_A = { info: INFO, asset: { name: 'a.apk', size: 1, url: 'https://a' } };
+  const CAND_B = {
+    info: { version: '0.3.0', notes: '' },
+    asset: { name: 'b.apk', size: 2, url: 'https://b' },
+  };
+
+  it('o install usa o asset aceito pelo diálogo, mesmo com um check posterior em voo', async () => {
+    let finishSecond!: (v: typeof CAND_B) => void;
+    const check = vi
+      .fn()
+      .mockResolvedValueOnce(CAND_A)
+      .mockImplementationOnce(() => new Promise((r) => (finishSecond = r)));
+    const install = vi.fn().mockResolvedValue('installing');
+    setUpdaterAdapterForTests({ check, install });
+    await checkForUpdates();
+    const second = checkForUpdates();
+    await installUpdate();
+    finishSecond(CAND_B);
+    await second;
+    expect(install).toHaveBeenCalledWith(CAND_A, expect.any(Function));
+  });
+
+  it('check que volta null não apaga um available', async () => {
+    const check = vi.fn().mockResolvedValueOnce(CAND_A).mockResolvedValueOnce(null);
+    setUpdaterAdapterForTests(adapter({ check }));
+    await checkForUpdates();
+    await checkForUpdates();
+    expect(state()).toEqual({ status: 'available', info: INFO });
+  });
+
+  it('available com versão nova no check seguinte troca a informação e o asset', async () => {
+    const check = vi.fn().mockResolvedValueOnce(CAND_A).mockResolvedValueOnce(CAND_B);
+    const install = vi.fn().mockResolvedValue('installing');
+    setUpdaterAdapterForTests({ check, install });
+    await checkForUpdates();
+    await checkForUpdates();
+    expect(state()).toEqual({ status: 'available', info: CAND_B.info });
+    await installUpdate();
+    expect(install).toHaveBeenCalledWith(CAND_B, expect.any(Function));
+  });
+
+  it.each(['needs_permission', 'ready', 'error'] as const)(
+    'check não altera o estado %s',
+    async (status) => {
+      const install =
+        status === 'error'
+          ? vi.fn().mockRejectedValue(new Error('x'))
+          : vi.fn().mockResolvedValue(status);
+      const check = vi.fn().mockResolvedValueOnce(CAND_A).mockResolvedValue(CAND_B);
+      setUpdaterAdapterForTests({ check, install });
+      await checkForUpdates();
+      await installUpdate();
+      const before = state();
+      expect(before.status).toBe(status);
+      expect(await checkForUpdates()).toBe('busy');
+      expect(state()).toEqual(before);
+    },
+  );
+
+  it('check que termina durante o download não altera o estado', async () => {
+    let finish!: (v: typeof CAND_B) => void;
+    const check = vi
+      .fn()
+      .mockResolvedValueOnce(CAND_A)
+      .mockImplementationOnce(() => new Promise((r) => (finish = r)));
+    const install = vi.fn(() => new Promise<never>(() => {}));
+    setUpdaterAdapterForTests({ check, install });
+    await checkForUpdates();
+    const second = checkForUpdates();
+    void installUpdate();
+    finish(CAND_B);
+    expect(await second).toBe('busy');
+    expect(state().status).toBe('downloading');
+  });
+
+  it('duas chamadas simultâneas fazem uma só consulta', async () => {
+    const check = vi.fn().mockResolvedValue(CAND_A);
+    setUpdaterAdapterForTests(adapter({ check }));
+    const [a, b] = await Promise.all([checkForUpdates(), checkForUpdates()]);
+    expect(check).toHaveBeenCalledTimes(1);
+    expect([a, b]).toEqual(['available', 'available']);
   });
 });

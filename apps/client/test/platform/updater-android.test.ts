@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RELEASES_LATEST_API } from '../../src/config';
 import { createAndroidUpdater } from '../../src/platform/updater/android';
-import { UpdateCheckError } from '../../src/platform/updater/types';
+import { UpdateCheckError, type UpdateCandidate } from '../../src/platform/updater/types';
 
 const URL_APK =
   'https://github.com/JoaoGabrielOT/nexo-check/releases/download/v0.2.0/nexo-check-0.2.0.apk';
@@ -23,7 +23,9 @@ describe('createAndroidUpdater.check', () => {
   it('consulta releases/latest com o Accept do GitHub', async () => {
     const fetchFn = vi.fn().mockResolvedValue(ok(RELEASE));
     const { updater } = make(fetchFn);
-    expect(await updater.check()).toEqual({ version: '0.2.0', notes: 'notas' });
+    const c = (await updater.check()) as UpdateCandidate;
+    expect(c?.info).toEqual({ version: '0.2.0', notes: 'notas' });
+    expect(c?.asset).toEqual({ name: 'nexo-check-0.2.0.apk', size: 500, url: URL_APK });
     expect(fetchFn).toHaveBeenCalledWith(
       RELEASES_LATEST_API,
       expect.objectContaining({ headers: { Accept: 'application/vnd.github+json' } }),
@@ -65,9 +67,9 @@ describe('createAndroidUpdater.install', () => {
       },
     );
     const { updater } = make(vi.fn().mockResolvedValue(ok(RELEASE)), installer);
-    await updater.check();
+    const c = (await updater.check()) as UpdateCandidate;
     const onProgress = vi.fn();
-    expect(await updater.install(onProgress)).toBe('needs_permission');
+    expect(await updater.install(c, onProgress)).toBe('needs_permission');
     expect(installer).toHaveBeenCalledWith(
       { url: URL_APK, expectedSize: 500 },
       expect.any(Function),
@@ -78,13 +80,15 @@ describe('createAndroidUpdater.install', () => {
   it('repassa o status ready', async () => {
     const installer = vi.fn().mockResolvedValue('ready');
     const { updater } = make(vi.fn().mockResolvedValue(ok(RELEASE)), installer);
-    await updater.check();
-    expect(await updater.install(() => {})).toBe('ready');
+    const c = (await updater.check()) as UpdateCandidate;
+    expect(await updater.install(c, () => {})).toBe('ready');
   });
 
-  it('sem check anterior rejeita', async () => {
+  it('candidato sem asset rejeita', async () => {
     const { updater, installer } = make(vi.fn());
-    await expect(updater.install(() => {})).rejects.toThrow();
+    await expect(
+      updater.install({ info: { version: '0.2.0', notes: '' } }, () => {}),
+    ).rejects.toThrow();
     expect(installer).not.toHaveBeenCalled();
   });
 });

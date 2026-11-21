@@ -1,5 +1,5 @@
 import { APP_VERSION } from '../../config';
-import { evaluateRelease, fetchLatestRelease, type ApkAsset } from './github';
+import { evaluateRelease, fetchLatestRelease } from './github';
 import type { InstallOutcome, UpdaterAdapter } from './types';
 
 export interface AndroidUpdaterDeps {
@@ -12,15 +12,14 @@ export interface AndroidUpdaterDeps {
 }
 
 export function createAndroidUpdater(deps: AndroidUpdaterDeps): UpdaterAdapter {
-  let asset: ApkAsset | null = null;
   return {
     async check() {
       const release = evaluateRelease(await fetchLatestRelease(deps.fetchFn), deps.currentVersion);
-      asset = release?.asset ?? null;
-      return release?.info ?? null;
+      return release ? { info: release.info, asset: release.asset } : null;
     },
-    async install(onProgress): Promise<InstallOutcome> {
-      if (!asset) throw new Error('Nenhuma atualização verificada.');
+    async install(candidate, onProgress): Promise<InstallOutcome> {
+      const { asset } = candidate;
+      if (!asset) throw new Error('Atualização sem APK.');
       return deps.installer({ url: asset.url, expectedSize: asset.size }, onProgress);
     },
   };

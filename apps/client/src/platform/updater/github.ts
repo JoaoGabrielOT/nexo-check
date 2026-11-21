@@ -25,19 +25,39 @@ export interface ApkAsset {
 
 const VERSION = /^\d+\.\d+\.\d+$/;
 
-/** Só `nexo-check-<versão>.apk` com tamanho conhecido, hospedado nas releases do repositório. */
+/** Caminho exato do asset: `/<dono>/<repo>/releases/download/<tag>/<nome>` em github.com, sem query. */
+function parseAssetUrl(raw: string, tag: string, name: string): URL | null {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  const base = new URL(RELEASE_DOWNLOAD_PREFIX);
+  const ok =
+    url.protocol === 'https:' &&
+    url.host === base.host &&
+    url.username === '' &&
+    url.password === '' &&
+    url.search === '' &&
+    url.hash === '' &&
+    url.pathname === `${base.pathname}${encodeURIComponent(tag)}/${encodeURIComponent(name)}`;
+  return ok ? url : null;
+}
+
+/** Só `nexo-check-<versão>.apk` com tamanho conhecido, hospedado na release `tag` do repositório. */
 export function pickApkAsset(
   assets: { name: string; size: number; browser_download_url: string }[],
   version: string,
+  tag: string = `v${version}`,
 ): ApkAsset | null {
   const expected = `nexo-check-${version}.apk`.toLowerCase();
-  const found = assets.find(
-    (a) =>
-      a.name.toLowerCase() === expected &&
-      a.size > 0 &&
-      a.browser_download_url.startsWith(RELEASE_DOWNLOAD_PREFIX),
-  );
-  return found ? { name: found.name, size: found.size, url: found.browser_download_url } : null;
+  for (const a of assets) {
+    if (a.name.toLowerCase() !== expected || a.size <= 0) continue;
+    const url = parseAssetUrl(a.browser_download_url, tag, a.name);
+    if (url) return { name: a.name, size: a.size, url: url.href };
+  }
+  return null;
 }
 
 /** Decide se a release mais recente é uma atualização instalável; qualquer dúvida vira `null`. */
@@ -52,7 +72,7 @@ export function evaluateRelease(
   const version = release.tag_name.trim().replace(/^v/i, '');
   if (!VERSION.test(version)) return null;
   if (compareSemver(version, currentVersion) <= 0) return null;
-  const asset = pickApkAsset(release.assets, version);
+  const asset = pickApkAsset(release.assets, version, release.tag_name.trim());
   if (!asset) return null;
   return { info: { version, notes: release.body ?? '' }, asset };
 }

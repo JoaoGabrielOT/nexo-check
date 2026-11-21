@@ -53,6 +53,17 @@ describe('pickApkAsset', () => {
     expect(pickApkAsset([evil, other], '0.2.0')).toBeNull();
   });
 
+  it.each([
+    ['com ..', BASE + '../v9.9.9/nexo-check-0.2.0.apk'],
+    ['de outra tag', BASE.replace('v0.2.0', 'v0.1.0') + 'nexo-check-0.2.0.apk'],
+    ['com query', BASE + 'nexo-check-0.2.0.apk?x=1'],
+    ['com fragmento', BASE + 'nexo-check-0.2.0.apk#x'],
+    ['com credenciais', BASE.replace('https://', 'https://u:p@') + 'nexo-check-0.2.0.apk'],
+    ['em http', BASE.replace('https', 'http') + 'nexo-check-0.2.0.apk'],
+  ])('ignora URL %s', (_n, url) => {
+    expect(pickApkAsset([asset('nexo-check-0.2.0.apk', 1000, url)], '0.2.0')).toBeNull();
+  });
+
   it('a versão não vira regex', () => {
     expect(pickApkAsset([asset('nexo-check-0x2x0.apk')], '0.2.0')).toBeNull();
   });

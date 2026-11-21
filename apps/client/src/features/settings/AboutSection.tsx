@@ -12,6 +12,7 @@ export function AboutSection() {
   const checkUpdates = async () => {
     const native = await checkForUpdates();
     if (native === 'none') return void toast(t('update.upToDate'));
+    if (native === 'rate_limited') return void toast(t('update.rateLimited'));
     if (native === 'error') return void toast(t('errors.generic'));
     // Nativo com versão nova (o diálogo abre sozinho) ou consulta em andamento: nada a avisar.
     if (native !== 'unsupported') return;

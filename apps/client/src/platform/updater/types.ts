@@ -15,10 +15,19 @@ export interface InstallProgress {
  */
 export type InstallOutcome = 'restarting' | 'installing' | 'needs_permission' | 'ready';
 
+/** Versão nova aceita; `asset` é o APK escolhido (Android), guardado pelo store junto com a `info`. */
+export interface UpdateCandidate {
+  info: UpdateInfo;
+  asset?: { name: string; size: number; url: string };
+}
+
 export interface UpdaterAdapter {
-  /** `null` quando não há versão nova; rejeita se a consulta falhar. */
-  check(): Promise<UpdateInfo | null>;
-  install(onProgress: (p: InstallProgress) => void): Promise<InstallOutcome>;
+  /** `null` quando não há versão nova; rejeita se a consulta falhar. Sem estado compartilhado. */
+  check(): Promise<UpdateCandidate | null>;
+  install(
+    candidate: UpdateCandidate,
+    onProgress: (p: InstallProgress) => void,
+  ): Promise<InstallOutcome>;
 }
 
 export type UpdaterState =

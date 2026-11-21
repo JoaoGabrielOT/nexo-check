@@ -20,6 +20,7 @@ import { ConfigPage } from '../../src/features/settings/ConfigPage';
 import { TodayPage } from '../../src/features/today';
 import * as files from '../../src/platform/files';
 import { setUpdaterAdapterForTests } from '../../src/platform/updater/store';
+import { UpdateCheckError } from '../../src/platform/updater/types';
 import * as ui from '@nexo/ui';
 
 vi.mock('@nexo/ui', async (orig) => {
@@ -370,6 +371,19 @@ describe('Verificar atualizações', () => {
     await user.click(await screen.findByRole('button', { name: 'Verificar atualizações' }));
     await waitFor(() =>
       expect(ui.toast).toHaveBeenCalledWith('Não foi possível concluir agora. Tente novamente.'),
+    );
+  });
+
+  it('no nativo, limite de requisições mostra aviso próprio', async () => {
+    setUpdaterAdapterForTests({
+      check: () => Promise.reject(new UpdateCheckError(403)),
+      install: async () => 'installing',
+    });
+    const user = userEvent.setup();
+    renderConfig();
+    await user.click(await screen.findByRole('button', { name: 'Verificar atualizações' }));
+    await waitFor(() =>
+      expect(ui.toast).toHaveBeenCalledWith('Muitas verificações agora. Tente mais tarde.'),
     );
   });
 

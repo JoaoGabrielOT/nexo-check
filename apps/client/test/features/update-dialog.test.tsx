@@ -14,7 +14,7 @@ const INFO = { version: '0.2.0', notes: '- melhorias **importantes**' };
 
 function adapter(over: Partial<UpdaterAdapter> = {}): UpdaterAdapter {
   return {
-    check: vi.fn().mockResolvedValue(INFO),
+    check: vi.fn().mockResolvedValue({ info: INFO }),
     install: vi.fn().mockResolvedValue('installing'),
     ...over,
   };
@@ -59,7 +59,7 @@ describe('UpdateDialog', () => {
     const user = userEvent.setup();
     let report!: (p: InstallProgress) => void;
     const a = adapter({
-      install: vi.fn<UpdaterAdapter['install']>((onProgress) => {
+      install: vi.fn<UpdaterAdapter['install']>((_c, onProgress) => {
         report = onProgress;
         return new Promise(() => {});
       }),
@@ -71,6 +71,10 @@ describe('UpdateDialog', () => {
     expect(bar).toHaveAttribute('aria-valuenow', '50');
     expect(screen.getByText('Baixando… 50%')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Depois' })).not.toBeInTheDocument();
+    expect(bar).toHaveAttribute('aria-valuetext', 'Baixando… 50%');
+    const live = screen.getByText('Baixando… 50%', { selector: '[aria-live]' });
+    expect(live).toHaveAttribute('aria-live', 'polite');
+    expect(live).toHaveFocus();
   });
 
   it('sem total conhecido a barra fica indeterminada', async () => {
@@ -78,7 +82,7 @@ describe('UpdateDialog', () => {
     let report!: (p: InstallProgress) => void;
     await open(
       adapter({
-        install: vi.fn<UpdaterAdapter['install']>((onProgress) => {
+        install: vi.fn<UpdaterAdapter['install']>((_c, onProgress) => {
           report = onProgress;
           return new Promise(() => {});
         }),

@@ -37,7 +37,8 @@
     "needsPermission": "Permita que o NEXO Check instale apps desta fonte e toque em \"Atualizar agora\" de novo.",
     "ready": "Download concluído. Com o NEXO Check aberto, toque em \"Instalar agora\".",
     "error": "Não foi possível atualizar agora. Tente de novo mais tarde.",
-    "upToDate": "Você já está na versão mais recente."
+    "upToDate": "Você já está na versão mais recente.",
+    "rateLimited": "Muitas verificações agora. Tente mais tarde."
   },
   "errors": {
     "backup": {
