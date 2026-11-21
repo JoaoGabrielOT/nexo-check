@@ -7,7 +7,8 @@ import java.util.Locale
 object ApkFiles {
     const val ALLOWED_PATH_PREFIX = "/JoaoGabrielOT/nexo-check/releases/download/"
 
-    private val ASSET_NAME = Regex("^nexo-check-[0-9A-Za-z.\-]+\.apk$")
+    // Raw string: em string comum o Kotlin recusa "\-" e "\." (escape inválido).
+    private val ASSET_NAME = Regex("""^nexo-check-[0-9A-Za-z.\-]+\.apk$""")
 
     // Hosts para onde o GitHub redireciona o download de assets de release.
     private val REDIRECT_HOSTS = setOf(
